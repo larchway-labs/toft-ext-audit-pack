@@ -3,4 +3,8 @@ __pycache__/
 .venv/
 out/
 .venv/
-dist/*.tar.gz
+
+# dist/ is NOT ignored. The CLI tarballs ship inside this repo so the gallery
+# app can serve them itself: the install this product is built for has no
+# outbound HTTPS, and a download that needs GitHub is a download that fails.
+# They are built by ../launchpad-audit-cli/build.sh.

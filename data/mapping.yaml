@@ -1,0 +1,1494 @@
+# Launchpad's answer to NIST SP 800-171 Rev 3, requirement by requirement.
+#
+# `responsibility` is the honest half of this document and it has four values:
+#   platform   Launchpad implements it. The install's configuration is the
+#              evidence, and this pack reads it.
+#   shared     Launchpad provides the mechanism; the organization must
+#              configure or operate it. Both halves are stated.
+#   inherited  Satisfied below Launchpad — the host, the cluster, the facility,
+#              the identity provider. Launchpad neither implements nor weakens
+#              it, and the assessor should look at that layer.
+#   customer   Launchpad has no part in it. Said plainly rather than padded.
+#
+# A pack that claimed `platform` everywhere would be worthless to an assessor.
+# The `customer` and `inherited` entries are what make the `platform` ones
+# credible.
+#
+# `odp` binds an organization-defined parameter to a live reading where the
+# install actually holds that value. This is the sharpest thing here: NIST asks
+# the organization to define a period, and Launchpad's settings row IS the
+# definition.
+
+meta:
+  version: 1
+  catalog: NIST SP 800-171 Revision 3
+  platform: Launchpad
+  note: >
+    Requirement ids, titles and statement text are taken verbatim from the NIST
+    OSCAL release. Everything under `mechanism`, `customer` and `odp` is this
+    project's assertion about Launchpad and is what an assessor should test.
+
+requirements:
+
+  # =================================================== 03.01 Access Control
+  "03.01.01":
+    responsibility: shared
+    summary: Accounts are platform rows with three system roles; the inactivity sweep is a setting.
+    mechanism: >
+      Every account is a database row with exactly one system role — viewer,
+      publisher or system_admin. Accounts are created by an identity provider or
+      by the built-in local administrator; a provider may create an account
+      without letting it in, because `pending` is a provisioning policy and
+      never a role, and activation is one audited act that never mints an
+      administrator. Disabling on inactivity is the dormancy sweep, which is a
+      switch plus a threshold and can never lock an administrator. Every account
+      carries three clocks — last_active_at, last_key_use_at and last_login_at —
+      so "last used" is four facts rather than the sign-in alone. Creation,
+      activation, role change and locking all write audit_log in the same
+      transaction as the change.
+    customer: >
+      Define who may hold each role and the criteria for granting them; run the
+      periodic review; connect termination and transfer to account removal.
+      Launchpad records the acts but does not know your joiners-movers-leavers
+      process.
+    evidence: [users_and_roles, groups_and_members, setting_dormancy, setting_sessions, audit_by_category, user_access_review]
+    odp:
+      A.03.01.01.ODP.01:
+        evidence: setting_dormancy
+        field: dormant_lock_days
+        note: The install's own inactivity threshold, in days, live from settings.
+      A.03.01.01.ODP.05:
+        evidence: setting_sessions
+        field: session_idle_minutes
+        note: The idle period after which a session is ended. 0 means the idle half is off.
+    refs: ["invariants: Authorization", "invariants: Identity", "ADR §52"]
+
+  "03.01.02":
+    responsibility: platform
+    summary: Every handler authorizes for itself; two definitions of visibility and nothing hand-rolls a third.
+    mechanism: >
+      Authorization is not a middleware verdict — auth.Middleware lets anonymous
+      callers through with a nil principal and every handler authorizes for
+      itself. Anything taking an id from the URL scopes its query by that id.
+      There are exactly two definitions of the apps a principal may see: a
+      listing is `listable`, an object check is `readable`, and nothing hand-rolls
+      a third. Refusals answer 404 rather than 403 so a refusal does not confirm
+      the object exists, with two documented scoped exceptions. An app is owned
+      by a user or a group, never both and never neither.
+    evidence: [apps_and_visibility, estate_reach, user_access_review, groups_and_members]
+    refs: ["invariants: Authorization"]
+
+  "03.01.03":
+    responsibility: shared
+    summary: Reach is a closed list the platform can enumerate per app and estate-wide.
+    mechanism: >
+      Launchpad can state, for every app, what it is able to touch — credential
+      and mount names, integration kinds, env key counts, grants and app keys —
+      as a closed list where the exclusion list is the load-bearing half. It is
+      what an app CAN touch, never what it did, and it is names, never values
+      and never a credential value under any circumstance. What the platform
+      cannot see is on the page, always, naming outbound network: an app may
+      open arbitrary egress unless the cluster's policy engine stops it.
+    customer: >
+      Flow control between an app and the outside world is a network decision,
+      not a Launchpad one. In isolated mode a NetworkPolicy governs it and the
+      policy engine is a cluster-creation choice; in shared mode there is no
+      egress restriction from the platform. Enforce it at the network layer and
+      assess it there.
+    evidence: [estate_reach, storage_resources, integration_settings, processes]
+    refs: ["invariants: What an app can reach", "invariants: Process and network boundaries"]
+
+  "03.01.04":
+    responsibility: shared
+    summary: Ownership, the editor rung and admin-only acts separate duties; the org assigns them.
+    mechanism: >
+      The role a caller holds is one of six words and no seventh, and the three
+      human ones map to what a person may do with an app. Duties that decide who
+      may reach something are separated from duties that operate it: locking an
+      app is system_admin only and deliberately not the owner's, because a lock
+      the owner can lift is not a lock; granting storage access is separated from
+      using it; accepting a dependency waiver is separated from deploying. A key
+      never manages credentials or authorization.
+    customer: >
+      Decide which individuals hold system_admin, and keep that set small and
+      reviewed. Launchpad enforces the separation it defines but cannot know
+      that two of your administrators are the same person's two accounts.
+    evidence: [users_and_roles, user_access_review, api_key_inventory, audit_by_category]
+    refs: ["invariants: App locking", "invariants: The caller's role", "invariants: Machine credentials"]
+
+  "03.01.05":
+    responsibility: shared
+    summary: Least privilege is the default at every rung; the install-wide list rung is off by default.
+    mechanism: >
+      Grants are per app and per person or group. The `list` rung is granted to a
+      group or install-wide, never conjured, and never reaches a workload;
+      approving an ask for access is a floor and never a ceiling. The
+      install-wide list rung defaults OFF, because turning it on discloses every
+      app's name, slug and owner to everyone who can sign in. An app key is a
+      grant on one app; a personal key is an identity; a deploy key belongs to
+      nobody, and the deploy list is a strict subset of the personal one.
+    customer: >
+      Review grants periodically and justify each system_admin. The per-account
+      access review read is collected here to make that review evidenceable.
+    evidence: [user_access_review, setting_listable, apps_and_visibility, api_key_inventory, groups_and_members]
+    odp:
+      A.03.01.05.ODP.01:
+        evidence: users_and_roles
+        note: >
+          The roles requiring review are the three system roles Launchpad
+          defines; the accounts holding each are read live.
+    refs: ["invariants: Authorization", "invariants: Machine credentials"]
+
+  "03.01.06":
+    responsibility: shared
+    summary: system_admin is the privileged role; non-privileged use is a separate ordinary account.
+    mechanism: >
+      Privilege is one field on the account. Administrative reads are gated by
+      it and answer 404 to everyone else, so the privileged surface is not merely
+      hidden. The most sensitive administrative reads are refused to API keys
+      entirely, by name, so a privileged human cannot delegate them to a token
+      sitting in a pipeline's environment.
+    customer: >
+      Issue administrators a separate non-privileged account for ordinary work.
+      Launchpad does not force this and cannot detect it.
+    evidence: [users_and_roles, api_key_inventory, audit_by_category]
+    odp:
+      A.03.01.06.ODP.01:
+        evidence: users_and_roles
+        note: The privileged role in Launchpad is `system_admin`; its holders are listed live.
+    refs: ["invariants: Authorization"]
+
+  "03.01.07":
+    responsibility: platform
+    summary: Privileged functions are admin-gated and every one of them is audited.
+    mechanism: >
+      Authorization-relevant mutations write audit_log in the same transaction as
+      the change, so a privileged act and its record cannot come apart. The
+      audit feed's `settings`, `access` and `signins` categories are exactly the
+      privileged families. Non-privileged users are refused with 404, and the
+      refusal is recorded where it is authorization-relevant.
+    evidence: [audit_recent, audit_by_category, users_and_roles]
+    refs: ["invariants: Authorization", "ADR §45"]
+
+  "03.01.08":
+    responsibility: shared
+    summary: Local sign-in throttles at ten failed attempts per account; provider sign-in is the IdP's.
+    mechanism: >
+      The built-in local administrator's sign-in answers 429 after ten failed
+      attempts on that account. That door exists because there is always exactly
+      one way in that needs no provider — and no install ships a password the
+      internet already knows.
+    customer: >
+      Every other way in belongs to an identity provider, and the lockout policy
+      there is the provider's. Assess it at the IdP. The ODP values below are
+      Launchpad's for the local door only.
+    evidence: [auth_providers, auth_providers_public, shot_login, audit_by_category]
+    odp:
+      A.03.01.08.ODP.01:
+        value: "10"
+        note: Compiled in for the local administrator door, not a setting.
+    refs: ["invariants: Identity"]
+
+  "03.01.09":
+    responsibility: shared
+    summary: The refusal and notice copy is the administrator's, and blank is never allowed.
+    mechanism: >
+      What a locked account, a locked app, an unrecognised identity and a pending
+      account are told at the door are all administrator-set messages with
+      built-in fallbacks — clearing the box restores the default rather than
+      saying nothing. For a locked app no layer of the message may be blank.
+    customer: >
+      A system use notification banner with your organization's legal wording is
+      not a Launchpad feature. Put it on the identity provider's sign-in page,
+      which is the screen every non-local user actually meets.
+    evidence: [setting_refusal_copy, shot_login, shot_locked_app]
+    refs: ["invariants: App locking", "invariants: Identity"]
+
+  "03.01.10":
+    responsibility: shared
+    summary: Launchpad ends idle sessions; it does not lock a device.
+    mechanism: >
+      The idle timeout ends the session after a configured period of inactivity
+      and applies to sessions already outstanding, so shortening it takes effect
+      now rather than at the next sign-in.
+    customer: >
+      A device lock — screen lock, pattern hiding — is an endpoint control on the
+      user's workstation. Launchpad has no part in it and should not be cited
+      for it. The session timeout below is the nearest Launchpad fact and is
+      offered as supporting, not satisfying, evidence.
+    evidence: [setting_sessions]
+    odp:
+      A.03.01.10.ODP.01:
+        evidence: setting_sessions
+        field: session_idle_minutes
+        note: >
+          Offered as the platform-side inactivity period. The device lock itself
+          is the endpoint's.
+    refs: ["invariants: Identity"]
+
+  "03.01.11":
+    responsibility: platform
+    summary: A session has two clocks, both enforced on every request, both set by the install.
+    mechanism: >
+      A session has an absolute lifetime and an idle timeout, and an install sets
+      both. Nothing is written down: the ceiling is checked on every request
+      rather than baked into the token, at five enforcement points, and the
+      ceiling is not the JWT's exp. A renewal is the same session, not a new one,
+      so a long-lived browser tab cannot outlive the absolute clock.
+    evidence: [setting_sessions, install_checks]
+    odp:
+      A.03.01.11.ODP.01:
+        evidence: setting_sessions
+        field: session_absolute_hours
+        note: The absolute session lifetime; the idle half is session_idle_minutes.
+    refs: ["invariants: Identity"]
+
+  "03.01.12":
+    responsibility: inherited
+    summary: Launchpad is reached over the network like any web application; the remote-access boundary is yours.
+    mechanism: >
+      Launchpad terminates sessions over HTTPS behind whatever ingress the
+      install uses, believes X-Forwarded-* only from a trusted proxy, and works
+      out its own inbound address rather than being told it.
+    customer: >
+      Managing, monitoring and cryptographically protecting remote access — VPN,
+      zero-trust proxy, allowed networks — happens in front of Launchpad. Assess
+      it there.
+    evidence: [install_identity, install_settings, estate_targets]
+    refs: ["invariants: Process and network boundaries"]
+
+  "03.01.16":
+    responsibility: customer
+    summary: Not a platform concern.
+    customer: >
+      Wireless access is a network control. Launchpad has no wireless surface and
+      should not appear in this requirement's evidence.
+
+  "03.01.18":
+    responsibility: customer
+    summary: Not a platform concern.
+    customer: >
+      Mobile device access control is an endpoint and MDM control. Launchpad
+      serves a browser and has no device management surface.
+
+  "03.01.20":
+    responsibility: shared
+    summary: Which external systems the platform may reach is configuration, and every seam is optional.
+    mechanism: >
+      Every optional capability names a backend and no seam names a cloud; the
+      platform never works out which one it is on. Absent configuration means
+      absent, not dormant — with no artifact store, no isolated backend, no app
+      storage, no jobs and no telemetry configured, the routes 404 and nothing
+      appears in the UI. Where an app may reach an external system, that reach
+      is enumerated per app and estate-wide. Outbound vendor wires are individually
+      switchable and off means no outbound request at all.
+    customer: >
+      Decide which external systems are permitted and record the terms. The
+      evidence here tells you what this install is currently wired to.
+    evidence: [estate_reach, integration_settings, telemetry_settings, email_settings, storage_resources, git_connections, source_policy]
+    odp:
+      A.03.01.20.ODP.01:
+        evidence: estate_reach
+        note: >
+          The external systems in use are enumerated from the reach read and the
+          integration, telemetry, mail, storage and git-connection settings
+          rather than asserted.
+    refs: ["invariants: Optional capabilities", "invariants: What an app can reach"]
+
+  "03.01.22":
+    responsibility: platform
+    summary: Publishing is a gated transition, an install may decline it entirely, and unreachable apps latch closed.
+    mechanism: >
+      An app's visibility is private, authenticated or public, and the platform
+      never writes apps.visibility on the app's behalf. An install may decline to
+      publish anything: the anonymous-access switch takes a capability away
+      rather than offering one, and turning it off withdraws anonymity from
+      every app that already has it, immediately. The substitution is
+      `authenticated`, never `private`, so nothing is silently made stricter than
+      the owner chose. Publishing is gated on the transition, so an app that is
+      already public keeps serving. Both enforcement seams read the effective
+      value. Reachability adds a second gate: a public app that fails its probe
+      latches closed, and only a change of visibility clears the latch.
+    evidence: [apps_and_visibility, setting_anonymous_access, estate_targets, estate_reach]
+    refs: ["invariants: Anonymous access", "invariants: Reachability"]
+
+  # ============================================ 03.02 Awareness and Training
+  "03.02.01":
+    responsibility: customer
+    summary: Not a platform concern.
+    customer: >
+      Security literacy training is an organizational programme. Launchpad has
+      no training surface and no record of who has been trained. Cite your LMS.
+
+  "03.02.02":
+    responsibility: customer
+    summary: Not a platform concern.
+    customer: >
+      Role-based training is organizational. The one Launchpad-adjacent input is
+      the list of who holds system_admin, so the right people can be enrolled —
+      that list is collected here as an input, not as evidence of training.
+    evidence: [users_and_roles]
+
+  # ========================================= 03.03 Audit and Accountability
+  "03.03.01":
+    responsibility: shared
+    summary: Two record streams, six server-defined categories, and sign-ins are their own family.
+    mechanism: >
+      The install records two streams that are read as one feed: audit_log, the
+      governance record of authorization-relevant acts, and app_events, the
+      system record of what happened to apps. Categories are families of action
+      strings defined server-side — deploys, access, signins, settings, system —
+      and `signins` means session.* and is deliberately NOT part of `access`.
+      Every authentication outcome is recorded as session.*, in its own family.
+    customer: >
+      Decide which event types you require and confirm the categories above
+      cover them; the pack samples each category so the answer is a reading
+      rather than a claim.
+    evidence: [audit_recent, audit_by_category]
+    odp:
+      A.03.03.01.ODP.01:
+        evidence: audit_by_category
+        note: >
+          The event types selected for logging are the five server-defined
+          categories, each sampled live to show it is populated.
+    refs: ["ADR §45", "invariants: Identity"]
+
+  "03.03.02":
+    responsibility: platform
+    summary: Every record carries what happened, when, to what, and who did it.
+    mechanism: >
+      A record carries the action string, the actor, the object, the outcome, a
+      severity and an occurred_at timestamp. Authorization-relevant mutations
+      write their record in the same transaction as the change itself, so the
+      record cannot be missing for a change that succeeded.
+    evidence: [audit_recent]
+    refs: ["invariants: Authorization"]
+
+  "03.03.03":
+    responsibility: platform
+    summary: Generation is in the transaction, and the feed is filterable and paged.
+    mechanism: >
+      The feed is keyset-paged on (occurred_at, id) and filterable by category,
+      free text, severity and a time window, which is what makes it usable as an
+      assessment artifact rather than a log file.
+    evidence: [audit_recent, audit_by_category]
+
+  "03.03.04":
+    responsibility: shared
+    summary: An app's failures are recorded out of the request path, and telling someone never fails the thing that broke.
+    mechanism: >
+      Recording an app's failure happens out of the request path, and
+      notification never fails the operation that triggered it — a delete can
+      cross a writer, and an app that is gone is an outcome rather than a
+      failure. Notification channels are optional and never load-bearing: no
+      send may fail or block the request that triggered it.
+    customer: >
+      Alerting on an audit pipeline failure — disk full, database unavailable —
+      is infrastructure monitoring below Launchpad. Assess it there.
+    evidence: [install_checks, integration_settings, email_settings]
+    odp:
+      A.03.03.04.ODP.01:
+        evidence: integration_settings
+        note: >
+          The personnel notified are whoever the install's configured channels
+          reach; the channels are read live and may legitimately be none.
+    refs: ["invariants: Data path", "invariants: Notification channels"]
+
+  "03.03.05":
+    responsibility: shared
+    summary: The feed is the review surface; the review cadence is yours.
+    mechanism: >
+      audit_log has exactly two readers and the second is bounded in code rather
+      than by a parameter, so the review surface is not something an operator can
+      widen by passing a bigger number.
+    customer: >
+      Perform and record the review at your defined frequency. Launchpad
+      provides the feed and its filters; it does not schedule your review or
+      record that it happened.
+    evidence: [audit_recent, audit_by_category]
+    odp:
+      A.03.03.05.ODP.01:
+        note: Organization-defined review frequency. Launchpad holds no such setting.
+    refs: ["invariants: Identity"]
+
+  "03.03.06":
+    responsibility: platform
+    summary: Filtering and paging are the reduction; this pack is the report generation.
+    mechanism: >
+      Category, free text, severity and time-window filters over a keyset-paged
+      feed are the record-reduction mechanism. This pack itself is an instance of
+      report generation over it.
+    evidence: [audit_recent, audit_by_category]
+
+  "03.03.07":
+    responsibility: shared
+    summary: Records are stamped by the platform in UTC from the host clock.
+    mechanism: >
+      Every record carries occurred_at, and the feed is ordered and paged on it,
+      which is only sound because the stamp is the platform's own rather than a
+      caller's.
+    customer: >
+      Time synchronisation is the host's. Assess NTP at the operating system,
+      not at Launchpad.
+    evidence: [audit_recent, install_identity]
+    odp:
+      A.03.03.07.ODP.01:
+        note: >
+          The authoritative time source is the host's, below Launchpad. The
+          install's own clock reading is captured with the pack for comparison.
+
+  "03.03.08":
+    responsibility: platform
+    summary: Two readers, bounded in code, and no route deletes a record.
+    mechanism: >
+      audit_log has exactly two readers and the second is bounded in code, not by
+      a parameter. The feed is system_admin only and answers 404 to everyone
+      else. No API route deletes an audit record — retention settings govern the
+      operational records beside it, never the governance log.
+    evidence: [audit_recent, setting_retention, api_key_inventory]
+    refs: ["invariants: Identity"]
+
+  # ======================================= 03.04 Configuration Management
+  "03.04.01":
+    responsibility: shared
+    summary: The install's configuration is one readable document; an app's baseline is its release.
+    mechanism: >
+      Platform settings are one document readable in one request, and the
+      delivery artifacts are versioned and published rather than assembled by
+      hand: a single image tagged with the version and never `latest`, a Helm
+      chart, and a one-box compose bundle with a drift guard. An app's baseline is
+      the release its serving deployment resolved, recorded with the interpreter
+      it was built against.
+    customer: >
+      Hold the settings document and the chart values under your own change
+      control. This pack captures the current state; it is not a change-control
+      system.
+    evidence: [install_settings, install_identity, estate_languages, estate_targets]
+    odp:
+      A.03.04.01.ODP.01:
+        note: Organization-defined review frequency for the baseline.
+    refs: ["ADR §34", "ADR §44"]
+
+  "03.04.02":
+    responsibility: platform
+    summary: Settings are typed, validated and refused rather than approximated.
+    mechanism: >
+      Every dial is validated at the write and refused with a message naming the
+      bound rather than silently clamped. A boolean switch is read one way and an
+      unrecognised value is refused, never inferred from presence. Zero at any
+      level means the level beneath — the environment is the floor and is never
+      taken away — and a quantity's two unit spellings are peers of which only
+      one may be set.
+    evidence: [install_settings, install_checks]
+    odp:
+      A.03.04.02.ODP.01:
+        note: >
+          The configuration standard is the settings document itself; this pack
+          records its live state.
+    refs: ["invariants: Optional capabilities", "invariants: Process and network boundaries"]
+
+  "03.04.03":
+    responsibility: shared
+    summary: Every settings change is audited; approval is yours.
+    mechanism: >
+      Settings changes are audited in the `settings` category with the
+      administrator as actor. A deploy is audited in `deploys`. The audit feed is
+      therefore the change record for both the platform and the apps on it.
+    customer: >
+      Change approval — who authorises a settings change before it is made — is
+      an organizational process. Launchpad records the change, not the approval.
+    evidence: [audit_by_category, install_settings]
+
+  "03.04.04":
+    responsibility: customer
+    summary: Launchpad records changes; it does not analyse their security impact.
+    customer: >
+      Security impact analysis is an organizational activity. The audit feed and
+      the reach read tell you what changed and what it can touch, which are
+      inputs to that analysis rather than the analysis itself.
+    evidence: [audit_by_category, estate_reach]
+
+  "03.04.05":
+    responsibility: platform
+    summary: Who may change what is enforced per route and audited.
+    mechanism: >
+      Settings, providers, connections and locks are system_admin only and 404 to
+      everyone else. Deploying and restarting take the app's edit rung, so an
+      app's owner and editors have them and a reader does not. The most sensitive
+      administrative routes are additionally refused to every API key by name, so
+      a stolen token cannot make them.
+    evidence: [users_and_roles, api_key_inventory, audit_by_category]
+    refs: ["invariants: Machine credentials"]
+
+  "03.04.06":
+    responsibility: shared
+    summary: Optional capabilities are absent unless configured, and the refusal list is not configurable.
+    mechanism: >
+      Absent, not dormant: with no artifact store, no isolated backend, no app
+      storage, no jobs and no telemetry configured, the routes 404 or explain
+      themselves and nothing appears in the UI. A static app runs no commands and
+      has no dependencies, and its refusal list is not configurable. Apps bind
+      127.0.0.1 only in shared mode. Never hand os.Environ() to a child.
+    customer: >
+      Least functionality at the host and image layer — what is installed on the
+      node, what the runner image carries — is yours to constrain.
+    evidence: [install_settings, install_checks, estate_languages, processes, openapi]
+    odp:
+      A.03.04.06.ODP.01:
+        evidence: install_checks
+        note: >
+          Which capabilities this install actually offers is read from the checks
+          registry, where `skip` means the capability is not configured.
+    refs: ["invariants: Optional capabilities", "invariants: Static hosting"]
+
+  "03.04.08":
+    responsibility: platform
+    summary: Trusted app sources is allow-by-exception over provenance, with seven enforcement points.
+    mechanism: >
+      The source policy constrains the PROVENANCE of an app, not its behavior —
+      every sentence of its copy has to survive that. One resolver, a pure
+      matcher, and seven enforcement points whose list is the specification. The
+      two ZIP routes are a different switch and are deliberately not among them.
+      Coverage is checked at the write, never at the clone, and a settings change
+      never takes down running code.
+    evidence: [source_policy, git_connections, estate_targets]
+    odp:
+      A.03.04.08.ODP.01:
+        evidence: source_policy
+        field: patterns
+        note: The allowed source patterns in force, with their usage counts and the non-compliant count.
+    refs: ["invariants: Trusted app sources"]
+
+  "03.04.10":
+    responsibility: platform
+    summary: Three estate reads are the component inventory, and none of them omits an app.
+    mechanism: >
+      The estate is inventoried three ways and no read is allowed to be quietly
+      partial. `languages` is what each app is written in, by the series its
+      serving release resolved. `targets` is where each app is, and nothing is
+      ever omitted — an app that never deployed is a row with no url. `reach` is
+      what each app holds. Package-level inventory is a fourth read that never
+      answers less than it knows and carries its own coverage.
+    evidence: [estate_languages, estate_targets, estate_reach, dependency_inventory, processes, apps_and_visibility]
+    odp:
+      A.03.04.10.ODP.01:
+        note: Organization-defined inventory review frequency.
+    refs: ["invariants: What an app can reach", "invariants: The estate as a scan target"]
+
+  "03.04.11":
+    responsibility: shared
+    summary: Where an app's data can live is enumerable per app; what it puts there is the app's.
+    mechanism: >
+      Storage is explicit: a resource has a data plane when it names a bucket,
+      and a mapping attaches a folder of it to an app at a path and a level. A
+      level the driver cannot express as a mount is refused at attach rather than
+      approximated. The reach read states, per app, which mounts and credentials
+      it holds — by name, never value.
+    customer: >
+      Whether CUI is actually placed in a given mount is a property of the app
+      and your data classification, not of Launchpad. The platform tells you
+      where an app COULD put something.
+    evidence: [estate_reach, storage_resources, apps_and_visibility]
+    refs: ["invariants: App storage", "invariants: What an app can reach"]
+
+  "03.04.12":
+    responsibility: customer
+    summary: Travel and high-risk-area configuration is an endpoint policy.
+    customer: >
+      Issuing specially configured devices for high-risk travel is an endpoint
+      programme. Launchpad has no device posture surface.
+
+  # ================================ 03.05 Identification and Authentication
+  "03.05.01":
+    responsibility: shared
+    summary: Providers are database rows; there is always exactly one door needing no provider.
+    mechanism: >
+      Identity providers are rows an administrator manages at runtime, not
+      environment variables baked into a deployment. There is always exactly one
+      way in that needs no provider — the built-in local administrator — and
+      there is no first-user-becomes-admin rule. Machine identities are separated
+      into three key classes that are never blurred.
+    customer: >
+      Federating to your enterprise IdP is the expected configuration; the
+      strength of the identification there is the provider's.
+    evidence: [auth_providers, auth_providers_public, users_and_roles, api_key_inventory, shot_login]
+    odp:
+      A.03.05.01.ODP.01:
+        note: >
+          Which non-organizational users are permitted is a policy decision;
+          the providers configured and their allowed domains are read live.
+    refs: ["invariants: Identity", "invariants: Machine credentials"]
+
+  "03.05.02":
+    responsibility: platform
+    summary: A workload's identity is issued by the cluster and verified, never minted into a pod spec.
+    mechanism: >
+      A workload's identity is issued by the cluster and verified rather than
+      minted into a pod spec — which is what lets kubelet restart a container in
+      place. A service's run token is exchanged rather than extended, and the
+      exchange is not a second bootstrap. The role a request carries is signed
+      per app and per start, derived and never stored, so a redeploy invalidates
+      every assertion minted for the previous start.
+    evidence: [processes, estate_reach]
+    odp:
+      A.03.05.02.ODP.01:
+        note: >
+          The devices requiring identification here are workloads; the mechanism
+          is the cluster-issued identity described above.
+    refs: ["invariants: The workload seam", "invariants: The caller's role"]
+
+  "03.05.03":
+    responsibility: inherited
+    summary: Launchpad delegates MFA to the identity provider and holds no second factor.
+    mechanism: >
+      Launchpad authenticates people through OIDC and OAuth providers and holds
+      no second factor of its own. The one local door exists to bootstrap and to
+      recover, and it is a password.
+    customer: >
+      Enforce MFA at the identity provider for every account that reaches this
+      install, and treat the local administrator door as a break-glass credential
+      with compensating controls — it is the one account MFA will not cover.
+      This is the most important shared-responsibility item in this document.
+    evidence: [auth_providers, auth_providers_public, users_and_roles, shot_login]
+    refs: ["invariants: Identity"]
+
+  "03.05.04":
+    responsibility: platform
+    summary: PKCE on OIDC, state checked, and the session is a cookie the browser cannot read.
+    mechanism: >
+      The authorization code flow checks state and provider on the way back and
+      uses PKCE for OIDC. Sessions are HTTP-only cookies, all named launchpad_*,
+      and every other cookie name on the origin is the app's.
+    evidence: [auth_providers, install_checks]
+    refs: ["invariants: Identity", "invariants: Process and network boundaries"]
+
+  "03.05.05":
+    responsibility: platform
+    summary: An identity is a provider subject bound to an account; the subject is never displayed.
+    mechanism: >
+      An account record lists the identities that reach it — provider name,
+      login, email, first seen, last used — and never the subject. Removing a
+      provider keeps every account it provisioned, so an identifier is not reused
+      or orphaned by a configuration change. Ids stay text and absence stays the
+      empty string.
+    evidence: [users_and_roles, auth_providers, user_access_review]
+    odp:
+      A.03.05.05.ODP.01:
+        evidence: setting_dormancy
+        field: dormant_lock_days
+        note: >
+          The period after which an identifier is treated as inactive is the
+          dormancy threshold.
+    refs: ["invariants: Identity", "invariants: The schema's own rules"]
+
+  "03.05.07":
+    responsibility: shared
+    summary: One password exists — the local administrator's — and it is policy-checked and never shipped.
+    mechanism: >
+      No install ships a password the internet already knows; a first password
+      mints no session; recovery is proof you have the machine. A policy refusal
+      is a 422 that says which rule failed. Changing the password is
+      authenticated by the current one.
+    customer: >
+      Every other credential is the identity provider's, and its password policy
+      is assessed there.
+    evidence: [auth_providers_public, install_checks, shot_login]
+    odp:
+      A.03.05.07.ODP.01:
+        note: >
+          Password composition for federated accounts is the provider's. The
+          local door's rules are compiled in, not configurable.
+    refs: ["invariants: Identity"]
+
+  "03.05.11":
+    responsibility: platform
+    summary: Authentication failure is generic; the refusals that must differ are two sentences out and two rows down.
+    mechanism: >
+      Local sign-in answers a generic 401 on any failure, so the response does
+      not distinguish an unknown account from a wrong password. The refusals that
+      must be distinguishable — locked, no account, pending — are administrator-set
+      messages and are recorded distinctly in the audit log even where the door
+      says the same thing twice.
+    evidence: [setting_refusal_copy, shot_login, audit_by_category]
+    refs: ["invariants: Identity"]
+
+  "03.05.12":
+    responsibility: platform
+    summary: Three key classes, a rotation path, and off means absent and now.
+    mechanism: >
+      An app key is a grant on one app, a personal key is an identity, a deploy
+      key belongs to nobody, and the classes are never blurred. A key never
+      manages credentials or authorization — the router fails closed and a test
+      walks it. Turning personal keys off stops every key that already exists
+      from authenticating: off means absent, and off means now. At-rest key
+      management is a ring where one key writes and every key in the ring reads,
+      every ciphertext names the key that wrote it, and a key that is not held is
+      refused by name. Retiring a key is not revoking it, and no key reaches a
+      workload.
+    evidence: [api_key_inventory, deploy_keys, setting_api_keys, install_checks, estate_reach]
+    odp:
+      A.03.05.12.ODP.01:
+        evidence: api_key_inventory
+        note: >
+          Key lifetimes are per key and read live from the inventory, including
+          those with no expiry.
+    refs: ["invariants: Machine credentials", "invariants: At-rest encryption"]
+
+  # ========================================== 03.06 Incident Response
+  "03.06.01":
+    responsibility: shared
+    summary: Launchpad supplies detection inputs and containment tools, not an IR process.
+    mechanism: >
+      Three containment tools exist and are administrator-only. Locking an app
+      stops its workload and refuses visitors with the administrator's words;
+      unlocking never starts one, so containment does not silently resume
+      service. Turning personal API keys off stops every existing key
+      authenticating, immediately. Turning anonymous access off withdraws
+      anonymity from every public app at once. The audit feed and the per-app
+      event stream are the detection inputs.
+    customer: >
+      Incident handling — preparation, detection, analysis, containment,
+      recovery — is your process. Launchpad gives it a kill switch and a record;
+      it does not run it.
+    evidence: [audit_recent, audit_by_category, setting_api_keys, setting_anonymous_access, install_checks]
+    refs: ["invariants: App locking", "invariants: Anonymous access", "invariants: Machine credentials"]
+
+  "03.06.02":
+    responsibility: shared
+    summary: Notification channels exist and are optional; who is told is your decision.
+    mechanism: >
+      A notification's audience lives on its template, and channels are optional
+      and never load-bearing — no send may fail or block the request that
+      triggered it. There is exactly one send whose arrival is the point, and its
+      failures are counted rather than becoming a fourth status.
+    customer: >
+      Reporting incidents to your authorities and to DoD where required is
+      organizational and time-bound. Launchpad has no reporting integration for
+      it.
+    evidence: [integration_settings, email_settings, install_checks]
+    odp:
+      A.03.06.02.ODP.01:
+        note: Organization-defined incident reporting time period.
+    refs: ["invariants: Notification channels"]
+
+  "03.06.03":
+    responsibility: customer
+    summary: Not a platform concern.
+    customer: >
+      Testing the incident response capability is an organizational exercise.
+      Launchpad has no part in it.
+    odp:
+      A.03.06.03.ODP.01:
+        note: Organization-defined IR test frequency.
+
+  "03.06.04":
+    responsibility: customer
+    summary: Not a platform concern.
+    customer: >
+      Incident response training is organizational.
+
+  "03.06.05":
+    responsibility: customer
+    summary: Not a platform concern.
+    customer: >
+      The incident response plan is a document your organization owns. This pack
+      can be cited in it as the source of platform-side evidence and containment
+      steps, but it does not constitute the plan.
+
+  # ============================================== 03.07 Maintenance
+  "03.07.04":
+    responsibility: inherited
+    summary: Maintenance tooling sits below Launchpad.
+    mechanism: >
+      Launchpad ships a small set of operator subcommands that talk to Postgres
+      and exit — recovering an install that cannot be signed into, importing an
+      advisory corpus for an install with no outbound HTTPS, and completing a key
+      rotation. They are the platform's maintenance surface and they are run on
+      the host by whoever holds it.
+    customer: >
+      Controlling, inspecting and sanitising maintenance tools is a host and
+      process control at the operating-system layer.
+    evidence: [install_identity]
+
+  "03.07.05":
+    responsibility: inherited
+    summary: Nonlocal maintenance is host access, not platform access.
+    customer: >
+      How administrators reach the box — bastion, SSH, session recording — is
+      below Launchpad and is assessed there. Note that host access is strictly
+      more powerful than any Launchpad role.
+    evidence: [install_identity]
+
+  "03.07.06":
+    responsibility: customer
+    summary: Not a platform concern.
+    customer: >
+      Authorising maintenance personnel is organizational.
+
+  # =========================================== 03.08 Media Protection
+  "03.08.01":
+    responsibility: shared
+    summary: At-rest encryption is a key ring the platform implements; the media are the infrastructure's.
+    mechanism: >
+      Secrets at rest are encrypted under a named key, every scheme names its key
+      completely, and every ciphertext names the key that wrote it in one record
+      format across both backends. Presence decides the backend and there is no
+      runtime fallback. No key reaches a workload.
+    customer: >
+      Volume, disk and backup encryption for the database and the app filesystem
+      are the infrastructure's. Assess them at the storage layer.
+    evidence: [install_checks, storage_resources, install_settings]
+    refs: ["invariants: At-rest encryption"]
+
+  "03.08.02":
+    responsibility: shared
+    summary: Access to stored app data is grants and mounts; the underlying media are not Launchpad's.
+    mechanism: >
+      A grant is a person's and a mapping is an app's, and neither implies the
+      other. A grant narrows only by folder, resolution is union-of-max per key,
+      and there is no admin bypass. A folder nobody granted you is not a row you
+      can see. The URL is never more generous than the mount.
+    customer: >
+      Physical and block-level access to the media is the infrastructure's.
+    evidence: [storage_resources, estate_reach]
+    refs: ["invariants: App storage"]
+
+  "03.08.03":
+    responsibility: shared
+    summary: Deleting an app removes its bytes before its row; media sanitisation is the infrastructure's.
+    mechanism: >
+      Deleting an app removes the app's whole directory and every artifact it
+      published before the row, and a failure there keeps the app — because the
+      row is the only thing that names those bytes. Deleting a release removes
+      its directory, its artifact and its row, and reports what it freed.
+    customer: >
+      Sanitising the underlying disk, and any backups of it, is the
+      infrastructure's and is where an assessor should look.
+    evidence: [storage_resources, audit_by_category]
+
+  "03.08.04":
+    responsibility: customer
+    summary: Not a platform concern.
+    customer: >
+      Media marking is a physical and organizational control.
+
+  "03.08.05":
+    responsibility: customer
+    summary: Not a platform concern.
+    customer: >
+      Media transport is physical.
+
+  "03.08.07":
+    responsibility: customer
+    summary: Not a platform concern.
+    customer: >
+      Restricting the use of removable media is an endpoint and host control.
+    odp:
+      A.03.08.07.ODP.01:
+        note: Organization-defined removable media types. Not a Launchpad setting.
+
+  "03.08.09":
+    responsibility: shared
+    summary: The platform encrypts its own secrets; backup is the operator's.
+    mechanism: >
+      What Launchpad encrypts, it encrypts under a named key with the key id
+      derived rather than configured. An artifact store, where configured, holds
+      published releases and is one of the optional capabilities that is absent
+      unless named.
+    customer: >
+      Backing up the database and the app filesystem, and encrypting those
+      backups, is the operator's. Launchpad performs no backups.
+    evidence: [install_checks, storage_resources]
+    refs: ["invariants: At-rest encryption"]
+
+  # ========================================== 03.09 Personnel Security
+  "03.09.01":
+    responsibility: customer
+    summary: Not a platform concern.
+    customer: >
+      Personnel screening is organizational.
+    odp:
+      A.03.09.01.ODP.01:
+        note: Organization-defined screening criteria.
+
+  "03.09.02":
+    responsibility: shared
+    summary: Launchpad can disable and re-own; the trigger is your HR process.
+    mechanism: >
+      An account can be locked with a message, its role changed, and its grants
+      revoked, each audited. The dormancy sweep catches accounts nobody
+      remembered to disable, and it never locks an administrator. An app is owned
+      by a user or a group and never neither, so transferring ownership on a
+      leaver is a supported act rather than an orphaning.
+    customer: >
+      Connecting termination and transfer to these acts within your defined
+      period is your process. Launchpad records the act, not the trigger.
+    evidence: [users_and_roles, setting_dormancy, user_access_review, audit_by_category]
+    odp:
+      A.03.09.02.ODP.01:
+        note: >
+          Organization-defined period for disabling access on termination.
+          The dormancy threshold is the backstop, not the primary control.
+
+  # ========================================= 03.10 Physical Protection
+  "03.10.01":
+    responsibility: inherited
+    summary: Physical access is the facility's.
+    customer: >
+      Launchpad runs on infrastructure you or your cloud provider control.
+      Physical access authorization is assessed at that layer.
+
+  "03.10.02":
+    responsibility: inherited
+    summary: Physical access is the facility's.
+    customer: >
+      Monitoring physical access is assessed at the hosting facility.
+
+  "03.10.06":
+    responsibility: customer
+    summary: Not a platform concern.
+    customer: >
+      Alternate work site controls are organizational and endpoint controls.
+
+  "03.10.07":
+    responsibility: inherited
+    summary: Physical access is the facility's.
+    customer: >
+      Physical access control is assessed at the hosting facility.
+
+  "03.10.08":
+    responsibility: inherited
+    summary: Transmission line protection is the facility's and the network's.
+    customer: >
+      Protecting transmission media physically is a facility control; protecting
+      it cryptographically is 03.13.08, where Launchpad does have something to
+      say.
+
+  # ============================================ 03.11 Risk Assessment
+  "03.11.01":
+    responsibility: shared
+    summary: Launchpad supplies estate-wide inputs; the assessment is yours.
+    mechanism: >
+      Three estate reads and a package inventory give a risk assessment its
+      inventory inputs: what runs, where it is addressable, what each app holds,
+      and what every app depends on.
+    customer: >
+      Performing and recording the risk assessment is organizational.
+    evidence: [estate_reach, estate_targets, estate_languages, dependency_inventory, dependency_findings]
+    odp:
+      A.03.11.01.ODP.01:
+        note: Organization-defined risk assessment frequency.
+
+  "03.11.02":
+    responsibility: shared
+    summary: Dependency scanning is built in and honest about its limits; host and app scanning is yours.
+    mechanism: >
+      The dependency policy reads names and versions, not the app's code — and
+      the product says so rather than overselling it. Recorded is not scanned and
+      matched is not covered: there are three rungs of coverage, R sits on the
+      middle one, and the inventory is written before any of the questions is
+      asked. The sweep says that it ran — a row every pass whether or not
+      anything changed, written at the moment of the reading because it cannot be
+      taken again. A stale feed never blocks, and this install's package list
+      never leaves. Separately, the platform publishes what to scan: one row per
+      app with its address and effective visibility, admin or deploy-key only,
+      and a scan is never counted as usage.
+    customer: >
+      Scanning the host, the images and the running applications themselves is
+      yours. Launchpad tells a scanner where to point.
+    evidence: [dependency_findings, dependency_inventory, setting_dependency_policy, estate_targets, install_checks]
+    odp:
+      A.03.11.02.ODP.01:
+        evidence: setting_dependency_policy
+        field: dependency_scan_interval_hours
+        note: The interval at which the estate is re-checked against the advisory feed.
+    refs: ["invariants: Dependency policy", "invariants: The estate as a scan target"]
+
+  "03.11.04":
+    responsibility: shared
+    summary: Blocking thresholds and waivers are the platform's risk response; the decision is yours.
+    mechanism: >
+      The policy has a block threshold, a separate malware switch that is off by
+      default and is not the block threshold, and waivers with a maximum life —
+      there is no permanent waiver. A serving app is never stopped except for
+      malware on that switch, as one guarded transition attributed to the system,
+      never a re-lock, and an unlock the next pass undoes unless somebody signs a
+      waiver. A restart is not a deploy: the verdict is the release's, not
+      today's.
+    customer: >
+      Accepting a risk is authorization-shaped, which is why granting a waiver is
+      refused to every API key. A human administrator makes that call and it is
+      audited.
+    evidence: [setting_dependency_policy, dependency_findings, audit_by_category]
+    refs: ["invariants: Dependency policy"]
+
+  # ============================ 03.12 Security Assessment and Monitoring
+  "03.12.01":
+    responsibility: shared
+    summary: The install can diagnose itself and describe its own attack surface.
+    mechanism: >
+      The checks page is the install's self-diagnosis, computed per request and
+      stored nowhere, with a rule its own list is the specification for: only
+      reads, never a third party, skip over warn, a check the platform could not
+      ask is not a bad answer, and no detail carries a credential. The router can
+      also describe itself as an OpenAPI document generated from the same walk
+      the routes command uses, so it cannot drift from what is served — a target
+      list, not an API contract.
+    customer: >
+      The assessment itself, and its plan, are organizational.
+    evidence: [install_checks, openapi, estate_targets]
+    odp:
+      A.03.12.01.ODP.01:
+        note: Organization-defined assessment frequency.
+    refs: ["invariants: Optional capabilities", "invariants: The estate as a scan target"]
+
+  "03.12.02":
+    responsibility: customer
+    summary: Launchpad holds findings, not a POA&M.
+    customer: >
+      A plan of action and milestones is a document your organization maintains.
+      The dependency findings and the checks page are inputs to it; there is no
+      POA&M object in Launchpad.
+    evidence: [dependency_findings, install_checks]
+
+  "03.12.03":
+    responsibility: shared
+    summary: Continuous monitoring exists as reads and exports; the programme is yours.
+    mechanism: >
+      The dependency watch re-checks the estate on an interval and records that
+      it ran. Telemetry is exported, never resident, and never load-bearing —
+      names and attributes are a contract, cardinality is budgeted, and the
+      budget is code. The scrape endpoint gets its own listener and is never a
+      path on the platform's origin, because on a single-origin install an app's
+      JavaScript would read it as the viewer.
+    customer: >
+      Defining and running the continuous monitoring programme is organizational.
+    evidence: [telemetry_settings, setting_dependency_policy, install_checks, audit_recent, processes]
+    refs: ["invariants: Telemetry"]
+
+  "03.12.05":
+    responsibility: shared
+    summary: Every external seam is named and optional; the agreements are yours.
+    mechanism: >
+      Every seam names a backend and no seam names a cloud. A connection is
+      welded to its scope and a new scope is a new connection. A URL somebody
+      typed is server-side input, refused at save and at dial. A chosen
+      destination that stops working fails; it never falls back.
+    customer: >
+      Interconnection agreements with the systems named in this evidence are
+      organizational documents.
+    evidence: [integration_settings, telemetry_settings, email_settings, git_connections, storage_resources, estate_reach]
+    odp:
+      A.03.12.05.ODP.01:
+        evidence: estate_reach
+        note: >
+          The systems exchanged with are enumerated from the live integration,
+          telemetry, mail, git and storage configuration rather than asserted.
+    refs: ["invariants: The integration catalog", "invariants: Optional capabilities"]
+
+  # ================= 03.13 System and Communications Protection
+  "03.13.01":
+    responsibility: shared
+    summary: Origin isolation is the platform's boundary; the network boundary is the cluster's.
+    mechanism: >
+      The platform serves on one origin and deployed apps are proxied on another
+      — a different origin on the same host — so an app's JavaScript is not the
+      platform's JavaScript. Which responses are the platform's own is decided by
+      resolving the app, never by matching the path. Who may frame an app is the
+      install's answer and the default is the install itself; empty is not
+      anyone. The Prometheus scrape endpoint gets a listener of its own and is
+      never a path on the platform's origin. X-Forwarded-* is believed only from
+      a trusted proxy, and an install works out its own inbound address rather
+      than being told it.
+    customer: >
+      The perimeter in front of Launchpad — ingress, WAF, allowed networks — is
+      yours.
+    evidence: [install_settings, estate_targets, install_identity, install_checks]
+    refs: ["invariants: Process and network boundaries", "ADR §31"]
+
+  "03.13.04":
+    responsibility: shared
+    summary: Isolated mode separates apps by container; shared mode's app-to-app boundary is an accepted risk, stated.
+    mechanism: >
+      Execution mode is `shared` or `isolated`, never a backend name, and the
+      effective mode belongs to the deployment. In shared mode each app runs
+      under its own account, per-app secrecy on disk is enforced by a directory
+      the app does not own rather than by a mode bit on one it does, and apps
+      bind 127.0.0.1 only. A workload is never handed os.Environ(). Each app gets
+      a scratch directory that is never shared and nothing an app writes there
+      survives its process.
+    customer: >
+      App-to-app isolation in SHARED mode is an accepted risk and this project
+      says so rather than hiding it — origin isolation must never be cited as
+      evidence against it. If apps process CUI at differing sensitivities, run
+      them in isolated mode and assess the cluster's policy engine. This is the
+      second most important shared-responsibility item in this document.
+    evidence: [processes, estate_targets, estate_reach, install_checks]
+    refs: ["invariants: Process and network boundaries", "invariants: The workload seam"]
+
+  "03.13.06":
+    responsibility: shared
+    summary: Deny-by-default is real in isolated mode and is a cluster-creation decision.
+    mechanism: >
+      In isolated mode each workload gets a NetworkPolicy admitting ingress only
+      from the platform's own pods, matched on a pod label that is compiled into
+      the binary and must never be templated. The metadata block's isolated half
+      is written and never verified, because whether a NetworkPolicy is enforced
+      at all depends on the cluster's policy engine.
+    customer: >
+      The policy engine is a cluster-CREATION decision — on AKS it cannot be added
+      to an existing cluster. If it is absent, the policies Launchpad writes are
+      inert and deny-by-default is not met. Verify it at the cluster and record
+      the result; the platform deliberately does not claim to have checked.
+    evidence: [processes, install_checks, estate_reach]
+    refs: ["invariants: Process and network boundaries"]
+
+  "03.13.08":
+    responsibility: shared
+    summary: Secrets are encrypted at rest by the platform; transport is the ingress's.
+    mechanism: >
+      At-rest: every scheme names its key completely and Key Vault's version is
+      not optional; every ciphertext names the key that wrote it in one record
+      format across both backends, and only the crypto package parses it. One key
+      writes, every key in the ring reads, and a key that is not held is refused
+      by name. Presence decides the backend and there is no runtime fallback. No
+      key reaches a workload. Session cookies are HTTP-only.
+    customer: >
+      TLS termination, its cipher suites and its certificate lifecycle are the
+      ingress's. Launchpad does not terminate TLS itself in the supported
+      deployments and must not be cited as the transport control.
+    evidence: [install_checks, install_settings, storage_resources]
+    refs: ["invariants: At-rest encryption"]
+
+  "03.13.09":
+    responsibility: platform
+    summary: Both session clocks end the session at the server, on every request.
+    mechanism: >
+      The idle timeout and the absolute ceiling are both enforced on every
+      request rather than baked into the token, at five enforcement points, and
+      both apply to sessions already outstanding.
+    evidence: [setting_sessions]
+    odp:
+      A.03.13.09.ODP.01:
+        evidence: setting_sessions
+        field: session_idle_minutes
+        note: The period of inactivity after which the session is terminated.
+    refs: ["invariants: Identity"]
+
+  "03.13.10":
+    responsibility: platform
+    summary: A key ring with a derived id, one writer, and a refusal by name for a key not held.
+    mechanism: >
+      The key id is derived, never configured. One key writes and every key in
+      the ring reads, so a rotation does not strand old ciphertext. Retiring a key
+      is not revoking it. Presence decides the backend — a cloud KMS or Key Vault
+      where configured, and a local scheme that is a peer rather than a fallback.
+      Rotation has a second half: a subcommand that sweeps the old key out so it
+      can be dropped.
+    evidence: [install_checks, install_settings]
+    odp:
+      A.03.13.10.ODP.01:
+        note: >
+          Key management requirements are the backend's — KMS, Key Vault, or the
+          local scheme. Which backend is in use is read from the checks.
+    refs: ["invariants: At-rest encryption"]
+
+  "03.13.11":
+    responsibility: shared
+    summary: The platform uses the backend's cryptography; FIPS validation is the backend's and the host's.
+    mechanism: >
+      Cryptographic operations are the configured backend's — a cloud KMS, Key
+      Vault, or the local scheme — and the record format names the key that wrote
+      each ciphertext so the algorithm in force is never ambiguous.
+    customer: >
+      If your assessment requires FIPS-validated cryptography, that property
+      belongs to the KMS or Key Vault backend and to the host's crypto libraries.
+      Launchpad does not assert FIPS validation and must not be cited for it.
+    evidence: [install_checks, install_settings]
+    odp:
+      A.03.13.11.ODP.01:
+        note: >
+          The cryptography used is the configured backend's; Launchpad makes no
+          FIPS claim of its own.
+    refs: ["invariants: At-rest encryption"]
+
+  "03.13.12":
+    responsibility: customer
+    summary: Not a platform concern.
+    customer: >
+      Collaborative computing devices — cameras, microphones — are endpoint
+      controls. Launchpad has no such device surface.
+    odp:
+      A.03.13.12.ODP.01:
+        note: Not applicable to Launchpad.
+
+  "03.13.13":
+    responsibility: shared
+    summary: Apps serve their own JavaScript on their own origin, and framing is an install decision.
+    mechanism: >
+      Deployed apps are served on a different origin from the platform, which is
+      what keeps an app's JavaScript from being the platform's. Who may frame an
+      app is the install's answer and the default is the install itself; empty is
+      not anyone. A notebook is executed once at build time and served from a
+      directory the platform owns rather than from the release.
+    customer: >
+      Deciding which mobile code your organization permits inside deployed apps
+      is your policy; Launchpad hosts what your developers deploy and applies the
+      source policy to its provenance, not to its content.
+    evidence: [install_settings, estate_targets, source_policy]
+    refs: ["invariants: Process and network boundaries", "invariants: Static hosting"]
+
+  "03.13.15":
+    responsibility: platform
+    summary: Sessions are signed cookies with two server-side clocks; a workload's role assertion is signed per start.
+    mechanism: >
+      Session authenticity rests on a signed HTTP-only cookie whose validity is
+      re-decided on every request rather than trusted from its own claims. The
+      role a forwarded request carries is signed per app and per start, derived
+      and never stored — absent, unverifiable and expired are one word, and that
+      word refuses. Stripping the header answers the visitor and not the
+      neighbour on loopback, which is why it is signed at all.
+    evidence: [setting_sessions, estate_reach, processes]
+    refs: ["invariants: The caller's role", "invariants: Identity"]
+
+  # ================ 03.14 System and Information Integrity
+  "03.14.01":
+    responsibility: shared
+    summary: Flaw remediation is the dependency policy for apps; patching the platform is a release you install.
+    mechanism: >
+      For the apps: an inventory written before any question is asked, matched
+      against an advisory feed, with a block threshold that refuses a deploy, a
+      waiver system with a maximum life and no permanent waiver, and a sweep that
+      records that it ran on every pass. A stale feed never blocks. For the
+      platform: a single versioned image, never tagged latest, and an install
+      that reports its own version and build revision.
+    customer: >
+      Deciding when to install a new Launchpad release, and patching the host and
+      the cluster, is yours. Launchpad does not update itself.
+    evidence: [setting_dependency_policy, dependency_findings, dependency_inventory, install_identity, install_checks]
+    odp:
+      A.03.14.01.ODP.01:
+        evidence: setting_dependency_policy
+        field: dependency_scan_interval_hours
+        note: How often the estate is re-checked for newly published advisories.
+    refs: ["invariants: Dependency policy"]
+
+  "03.14.02":
+    responsibility: shared
+    summary: Malware is handled as its own thing, not as a severity, and the stop switch is off by default.
+    mechanism: >
+      Malware is not a severity — it is a separate finding class with a separate
+      switch, and that switch is not the block threshold. It is the one condition
+      that may stop a serving app, as one guarded transition attributed to the
+      system, never a re-lock, and an unlock the next pass undoes unless somebody
+      signs a waiver. It is off by default, so an install that wants this
+      behaviour has chosen it.
+    customer: >
+      Anti-malware on the host and in the images is yours. Launchpad's malware
+      handling is about declared dependencies, not about scanning file content.
+    evidence: [setting_dependency_policy, dependency_findings, audit_by_category]
+    odp:
+      A.03.14.02.ODP.01:
+        evidence: setting_dependency_policy
+        field: dependency_block_malware
+        note: >
+          Whether this install stops a serving app on a malware finding. Off by
+          default and reported as it actually is.
+    refs: ["invariants: Dependency policy"]
+
+  "03.14.03":
+    responsibility: shared
+    summary: The advisory feed is the alert channel, and it works without outbound HTTPS.
+    mechanism: >
+      Advisories arrive from a configured feed with an interval and a maximum
+      age, and a stale feed never blocks. For an install with no outbound HTTPS —
+      which this product treats as its customer rather than an edge case — the
+      corpus can be imported from a file by an operator subcommand. The feed
+      credential is its own encrypted document and is write-only.
+    customer: >
+      Receiving and acting on vendor and government advisories about the platform
+      itself, the host and the cluster is organizational.
+    evidence: [setting_dependency_policy, dependency_findings, install_checks]
+    refs: ["invariants: Dependency policy"]
+
+  "03.14.06":
+    responsibility: shared
+    summary: The platform monitors apps and exports telemetry; network monitoring is yours.
+    mechanism: >
+      Each app has a durable platform-side account of itself — the platform's own
+      voice about the app, kept per app, where narration is stage marks and never
+      a stream and no error value reaches the verb. Failures are recorded out of
+      the request path. Live workloads, their status, restarts and where measured
+      their CPU and memory are readable estate-wide, where a metric a backend does
+      not measure is absent rather than zero. Telemetry is exported, never
+      resident.
+    customer: >
+      Network-level intrusion detection and host monitoring are yours.
+    evidence: [processes, audit_recent, telemetry_settings, install_checks, dependency_findings]
+    refs: ["invariants: Telemetry", "invariants: The workload seam", "invariants: Data path"]
+
+  "03.14.08":
+    responsibility: shared
+    summary: Retention resolves in one place and every dial is readable.
+    mechanism: >
+      Retention resolves in one place rather than being reimplemented per caller.
+      The operational retention dials — app events, job logs and runs, scheduled
+      logs and runs, announcement recipients, dependency scan history — are
+      readable settings with working defaults. An app's own data document is one
+      JSON document and not a store: no keys, no listing, no queries, 256 KiB,
+      and the bytes are the app's, stored as text and never read.
+    customer: >
+      Deciding the retention periods your CUI requires, and applying them to data
+      inside your apps, is yours. Launchpad retains its own records, not your
+      application data.
+    evidence: [setting_retention, install_settings, estate_reach]
+    odp: {}
+    refs: ["invariants: Data path", "invariants: App data"]
+
+  # ================================================ 03.15 Planning
+  "03.15.01":
+    responsibility: customer
+    summary: Policies and procedures are yours; this pack is an input.
+    customer: >
+      Launchpad holds no policy documents. This pack exists to be cited by them.
+    odp:
+      A.03.15.01.ODP.01:
+        note: Organization-defined policy review frequency.
+
+  "03.15.02":
+    responsibility: shared
+    summary: Launchpad supplies the system description an SSP needs; the SSP is yours.
+    mechanism: >
+      The component inventory, the addressable surface, the reach of every app,
+      the served route list and the install's own version and configuration are
+      all readable and are collected by this pack. Those are the sections of a
+      system security plan that go stale fastest, and here they are generated
+      rather than transcribed.
+    customer: >
+      Authoring and maintaining the SSP is yours. Regenerate this pack when the
+      estate changes and attach it.
+    evidence: [install_identity, install_settings, estate_languages, estate_targets, estate_reach, openapi, processes]
+    odp:
+      A.03.15.02.ODP.01:
+        note: Organization-defined SSP review frequency.
+
+  "03.15.03":
+    responsibility: customer
+    summary: Not a platform concern.
+    customer: >
+      Rules of behavior are an organizational document users acknowledge.
+      Launchpad has no acknowledgement surface.
+    odp:
+      A.03.15.03.ODP.01:
+        note: Organization-defined frequency for review and re-acknowledgement.
+
+  # ============================ 03.16 System and Services Acquisition
+  "03.16.01":
+    responsibility: platform
+    summary: The product's design rules are written down, indexed, and enforced by tests.
+    mechanism: >
+      This platform keeps an explicit set of invariants — the rules a change has
+      to keep — each stated in full, indexed, and in many cases enforced by a
+      test whose failure is a build failure. Several are stated as "the list is
+      the specification", which means the enumeration in the code IS the control
+      and drift is caught mechanically rather than by review. Least privilege,
+      fail-closed refusal, 404-over-403, absent-not-dormant and never-a-credential-value
+      are among them.
+    evidence: [openapi, install_checks]
+    odp:
+      A.03.16.01.ODP.01:
+        note: >
+          The security engineering principles applied are the documented
+          invariants; they are a property of the build rather than a live
+          reading.
+    refs: ["invariants: index"]
+
+  "03.16.02":
+    responsibility: shared
+    summary: The language census is the unsupported-component report, and a version is refused rather than approximated.
+    mechanism: >
+      Every build records which interpreter version it resolved, and the estate
+      census reports apps grouped by the language and series their SERVING
+      release resolved — admin-only, never answering less than it knows. A
+      version is refused, never approximated, and the decision is made before the
+      build because that is where the interpreter gets baked in. Patch never
+      matters and a pin naming one is refused rather than truncated. The set of
+      available versions is discovered rather than compiled in: the operator says
+      where, and the probe says what.
+    customer: >
+      Deciding that a series has reached end of support, and scheduling the
+      migration, is yours. Launchpad tells you exactly which apps are on it.
+    evidence: [estate_languages, install_identity, dependency_inventory, install_checks]
+    refs: ["invariants: Language versions"]
+
+  "03.16.03":
+    responsibility: shared
+    summary: Every external service is an explicit, optional, named seam.
+    mechanism: >
+      Every seam names a backend and no seam names a cloud, and the platform
+      never works out which one it is on. Absent, not dormant. A connection is
+      welded to its scope. The far side's membership is the boundary. Vendor
+      wires are individually switchable and off means no outbound request at all,
+      with the endpoint compiled in and nothing that overrides it.
+    customer: >
+      Flowing your security requirements down to the providers named in this
+      evidence is yours.
+    evidence: [integration_settings, telemetry_settings, email_settings, git_connections, storage_resources, install_license]
+    odp:
+      A.03.16.03.ODP.01:
+        note: >
+          The external system services in use are enumerated live rather than
+          asserted; an install may legitimately have none.
+    refs: ["invariants: Optional capabilities", "invariants: The integration catalog"]
+
+  # ==================================== 03.17 Supply Chain Risk Management
+  "03.17.01":
+    responsibility: shared
+    summary: The platform gives supply chain risk a factual base; the plan is yours.
+    mechanism: >
+      Three facts feed a supply chain plan: what every app depends on, where
+      every app's source came from, and what interpreter each release was built
+      against. All three are readable estate-wide and admin-only.
+    customer: >
+      The plan itself is an organizational document.
+    evidence: [dependency_inventory, source_policy, estate_languages, git_connections]
+    odp:
+      A.03.17.01.ODP.01:
+        note: Organization-defined plan review frequency.
+
+  "03.17.02":
+    responsibility: shared
+    summary: Provenance is constrained by allow-by-exception patterns with seven enforcement points.
+    mechanism: >
+      Trusted app sources constrain where code may come from, as a pure matcher
+      behind one resolver with seven enforcement points whose list is the
+      specification. A connected git host is a HELD credential and no key may
+      attach one; coverage is the boundary and it is checked at the write.
+      Disable is immediate and unrefusable while remove is refused, naming the
+      apps still using it. The gallery is a separate switch: off means no
+      outbound request, the switch curates rather than contains, and a URL from
+      the catalog is treated as server-side input.
+    customer: >
+      Choosing which sources to trust, and vetting them, is yours.
+    evidence: [source_policy, git_connections, install_settings, estate_targets]
+    refs: ["invariants: Trusted app sources", "invariants: The Gallery"]
+
+  "03.17.03":
+    responsibility: shared
+    summary: Delivery artifacts are versioned and pinned; the requirements you flow down are yours.
+    mechanism: >
+      The delivery artifacts are published rather than assembled: one multi-arch
+      image tagged with the version and never latest, a Helm chart, a one-box
+      bundle with a drift guard, and CLI binaries published with no source. Five
+      things compiled into the binary must never be templated in the chart, and
+      that coupling is why the chart lives with the code. The dependency
+      inventory is written before any question is asked, so what an app declared
+      is recorded even where no advisory data covers it.
+    customer: >
+      Flowing supply chain requirements down to your own app developers, and
+      verifying the artifacts you install, is yours.
+    evidence: [dependency_inventory, install_identity, source_policy]
+    odp:
+      A.03.17.03.ODP.01:
+        note: Organization-defined supply chain requirements to flow down.
+    refs: ["ADR §34", "ADR §44", "ADR §67"]

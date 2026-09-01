@@ -1,0 +1,404 @@
+# Evidence registry — what this pack reads off a live install, and with what.
+#
+# `credential` is the load-bearing field and it is not a preference:
+#   key      the item is reachable by a personal administrator API key (lpu_),
+#            so the hosted extension can read it.
+#   session  the item is refused to every API key by name in
+#            internal/api/keyroutes.go, so ONLY a browser session reaches it —
+#            which is why the CLI exists. The extension must report these as
+#            "requires lpaudit", never as absent and never as empty.
+#
+# A screen entry names where a human reads the same fact in the UI. The CLI
+# screenshots it; the extension links to it.
+
+meta:
+  version: 1
+  platform: Launchpad
+
+items:
+
+  # ---------------------------------------------------------------- install
+  - id: install_identity
+    label: Install identity, version and build
+    credential: key
+    source: {kind: api, route: "GET /api/v1/system/health", fields: [server]}
+    screen: {path: /admin, label: "Admin → Overview"}
+    reading: >
+      The published version, build revision, hostname, OS and uptime of the
+      install the rest of this pack was read from. Every other item is a
+      statement about this build on this host at this timestamp.
+
+  - id: install_settings
+    label: Platform settings (whole document)
+    credential: key
+    source: {kind: api, route: "GET /api/v1/system/settings"}
+    screen: {path: /admin/settings, label: "Admin → Settings"}
+    reading: >
+      The install's configuration in one response. Individual settings items
+      below name their fields; this item is the whole document, kept because an
+      auditor asking "what else is configured" should not have to trust our
+      selection.
+
+  - id: install_checks
+    label: Self-diagnosis (readiness checks)
+    credential: key
+    source: {kind: api, route: "GET /api/v1/system/checks"}
+    screen: {path: /admin/checks, label: "Admin → Checks"}
+    reading: >
+      One row per check with pass/warn/fail/skip and the reading that produced
+      it. `skip` means the install does not offer that capability — it is not a
+      failure, and a check the platform could not ask is not a bad answer.
+
+  - id: install_license
+    label: Licence and tier
+    credential: session
+    source: {kind: api, route: "GET /api/v1/admin/license"}
+    screen: {path: /admin/license, label: "Admin → Licence"}
+    reading: >
+      The tier this build holds and the customer it names. Bookkeeping, never a
+      security boundary — recorded here because a control document should not
+      imply a capability the install is not licensed to configure.
+
+  # ---------------------------------------------------------- access control
+  - id: users_and_roles
+    label: Accounts, roles and activity clocks
+    credential: key
+    source: {kind: api, route: "GET /api/v1/users"}
+    screen: {path: /admin/people, label: "People"}
+    reading: >
+      Every account with its system role and the three dormancy clocks —
+      last_active_at (never nil), last_key_use_at and last_login_at (nil = never
+      signed in). "Last used" is four facts, never the sign-in alone.
+
+  - id: groups_and_members
+    label: Groups and their rosters
+    credential: key
+    source: {kind: api, route: "GET /api/v1/groups"}
+    screen: {path: /admin/groups, label: "People → Groups"}
+    reading: >
+      A group is a set of humans and never an actor. Rosters substantiate
+      group-derived access in the reach read.
+
+  - id: apps_and_visibility
+    label: Applications, owners and effective visibility
+    credential: key
+    source: {kind: api, route: "GET /api/v1/apps"}
+    screen: {path: /apps, label: "Apps"}
+    reading: >
+      Every app the caller may list, with owner (a user or a group, never both)
+      and visibility. Visibility here is the EFFECTIVE value — an install that
+      has withdrawn anonymous access reports what it actually serves.
+
+  - id: estate_reach
+    label: What every app can reach
+    credential: session
+    source: {kind: api, route: "GET /api/v1/admin/estate/reach"}
+    screen: {path: /admin/reach, label: "Admin → Apps → Reach"}
+    reading: >
+      One row per app: effective visibility, owner, credential and mount NAMES
+      (never values), integration kinds with their three booleans, and counts
+      for env keys, grants, app keys and recipients. Refused to every API key by
+      name — it is the inventory of everything the estate was given, in one
+      response. This is the single most auditor-relevant read on the install and
+      the CLI is the only way to obtain it.
+
+  - id: user_access_review
+    label: Per-account access review
+    credential: key
+    source: {kind: api, route: "GET /api/v1/users/{id}/access"}
+    screen: {path: /admin/people, label: "People → an account → Access"}
+    reading: >
+      Explicit access for one account — ownership, direct grants and group
+      grants with their sources — plus the public/authenticated counts. Collected
+      per account so an access review can be evidenced rather than asserted.
+
+  - id: setting_anonymous_access
+    label: Anonymous access switch
+    credential: key
+    source: {kind: api, route: "GET /api/v1/system/settings", fields: [public_apps_enabled]}
+    screen: {path: /admin/settings, anchor: access, label: "Admin → Settings → Access"}
+    reading: >
+      Whether an app may be reachable without signing in. On by default: it
+      takes a capability away rather than offering one. Off withdraws anonymity
+      from every app that already has it, immediately, and refuses the
+      transition to public.
+
+  - id: setting_listable
+    label: Install-wide list rung
+    credential: key
+    source: {kind: api, route: "GET /api/v1/system/settings", fields: [apps_listable_to_authenticated]}
+    screen: {path: /admin/settings, anchor: access, label: "Admin → Settings → Access"}
+    reading: >
+      Whether every signed-in person sees every app's name, slug and owner
+      without being able to open any of it. Default off, and that default is the
+      least-privilege answer.
+
+  - id: setting_sessions
+    label: Session lifetime and idle timeout
+    credential: key
+    source: {kind: api, route: "GET /api/v1/system/settings", fields: [session_absolute_hours, session_idle_minutes]}
+    screen: {path: /admin/settings, anchor: sessions, label: "Admin → Settings → Sessions"}
+    reading: >
+      A session has two clocks and an install sets both. Both apply to sessions
+      already outstanding — the ceiling is checked on every request rather than
+      baked into the token — so shortening either takes effect now rather than
+      at the next sign-in. 0 on the idle timeout turns that half off.
+
+  - id: setting_dormancy
+    label: Dormant account locking
+    credential: key
+    source: {kind: api, route: "GET /api/v1/system/settings", fields: [dormant_lock_enabled, dormant_lock_days]}
+    screen: {path: /admin/settings, anchor: accounts, label: "Admin → Settings → Accounts"}
+    reading: >
+      The switch turns the sweep on; the threshold is a number with a working
+      default. There is no value of the threshold that means "off", because a
+      control that locks accounts should not be switchable by mistyping a
+      figure. Neither can make the sweep lock an administrator.
+
+  - id: setting_refusal_copy
+    label: Refusal and activation messages
+    credential: key
+    source: {kind: api, route: "GET /api/v1/system/settings", fields: [locked_account_message, app_locked_message, no_account_message, pending_activation_message, account_activated_message]}
+    screen: {path: /admin/settings, label: "Admin → Settings"}
+    reading: >
+      What a locked account, a locked app and an unrecognised identity are told
+      at the door. Evidence for system use notification and for the account
+      management notifications a reviewer is told to check.
+
+  # ------------------------------------------------- audit and accountability
+  - id: audit_recent
+    label: Audit and system event feed
+    credential: key
+    source: {kind: api, route: "GET /api/v1/admin/audit", params: {limit: 200}}
+    screen: {path: /admin/audit, label: "Admin → Audit"}
+    reading: >
+      audit_log and app_events UNION ALL-ed, newest first. Categories are
+      families of action strings defined server-side — all, deploys, access,
+      signins, settings, system — with signins meaning session.* and
+      deliberately not part of access.
+
+  - id: audit_by_category
+    label: Audit coverage by category
+    credential: key
+    source: {kind: api, route: "GET /api/v1/admin/audit", params: {category: "each of deploys/access/signins/settings/system"}}
+    screen: {path: /admin/audit, label: "Admin → Audit"}
+    reading: >
+      The same feed sampled once per category, so the pack can show that each
+      family of auditable event is actually being recorded on this install
+      rather than merely being supported by the product.
+
+  - id: setting_retention
+    label: Record retention periods
+    credential: key
+    source: {kind: api, route: "GET /api/v1/system/settings", fields: [app_event_retention_days, job_log_retention_days, job_run_retention_days, scheduled_log_retention_days, scheduled_run_retention_days, announcement_recipient_retention_days, dependency_scan_history_kept]}
+    screen: {path: /admin/settings, label: "Admin → Settings"}
+    reading: >
+      Every retention dial the install exposes. Note that these govern the
+      operational records; audit_log itself is not pruned by a setting here.
+
+  # ----------------------------------------- identification & authentication
+  - id: auth_providers
+    label: Identity providers
+    credential: session
+    source: {kind: api, route: "GET /api/v1/admin/auth-providers"}
+    screen: {path: /admin/authentication, label: "Admin → Authentication"}
+    reading: >
+      Every configured way in, with per-provider user_count, redirect_uri and
+      login_ready. Refused to every API key: whoever can add a provider can add
+      a door they control, and reading the list is the surface an attacker would
+      map. Secrets are write-only and never appear here.
+
+  - id: auth_providers_public
+    label: Sign-in methods offered at the door
+    credential: none
+    source: {kind: api, route: "GET /api/v1/auth/providers"}
+    screen: {path: /login, label: "The sign-in page"}
+    reading: >
+      What the login page actually renders — the unauthenticated view of the
+      same fact. Collected alongside the admin read so the two can be compared:
+      a provider configured but not ready does not appear here.
+
+  - id: api_key_inventory
+    label: API key inventory
+    credential: session
+    source: {kind: api, route: "GET /api/v1/admin/api-keys"}
+    screen: {path: /admin/api-keys, label: "Admin → API keys"}
+    reading: >
+      Every personal key on the install with its owner, scopes and last use.
+      Refused to every API key — a token must not be able to inspect tokens, or
+      the blast radius of one leak is every leak. Three key classes are never
+      blurred: lp_ is a grant on one app, lpu_ is an identity, lpd_ belongs to
+      nobody.
+
+  - id: deploy_keys
+    label: Deploy keys
+    credential: session
+    source: {kind: api, route: "GET /api/v1/deploy-keys"}
+    screen: {path: /admin/api-keys, label: "Admin → API keys → Deploy keys"}
+    reading: >
+      The deploy list is a strict subset of the personal one. Admin only and
+      denied to both other key classes.
+
+  - id: setting_api_keys
+    label: Personal API keys switch
+    credential: key
+    source: {kind: api, route: "GET /api/v1/system/settings", fields: [api_keys_enabled]}
+    screen: {path: /admin/settings, label: "Admin → Settings"}
+    reading: >
+      Whether people may hold personal API keys. Turning it off also stops every
+      key that already exists from authenticating — off means absent, and off
+      means now.
+
+  # ------------------------------------------------ configuration management
+  - id: estate_languages
+    label: Language and runtime census
+    credential: key
+    source: {kind: api, route: "GET /api/v1/admin/estate/languages"}
+    screen: {path: /admin/estate/languages, label: "Admin → Apps → Languages"}
+    reading: >
+      Apps grouped by the language and release series their SERVING deployment
+      resolved, crossed with running mode. A version is a series and never a
+      patch. This is the component inventory for the interpreter layer, and it
+      is what answers "are we running anything unsupported".
+
+  - id: estate_targets
+    label: Addresses and deployment state
+    credential: key
+    source: {kind: api, route: "GET /api/v1/admin/estate/targets"}
+    screen: {path: /admin/scan-targets, label: "Admin → Apps → Scan targets"}
+    reading: >
+      One row per app carrying url, effective visibility, owner, framework,
+      execution mode, status, current release and last_deployed_at. Nothing is
+      ever omitted — an app that has never deployed is a row with no url, and a
+      locked one is listed and marked.
+
+  - id: source_policy
+    label: Trusted app sources
+    credential: session
+    source: {kind: api, route: "GET /api/v1/system/source-policy"}
+    screen: {path: /admin/source-policy, label: "Admin → Source policy"}
+    reading: >
+      Mode, whether uploads are allowed, the allowed git patterns with usage
+      counts, and the non-compliant count. This constrains the PROVENANCE of an
+      app, not its behavior. A settings change never takes down running code.
+
+  - id: git_connections
+    label: Connected git hosts
+    credential: session
+    source: {kind: api, route: "GET /api/v1/admin/git-connections"}
+    screen: {path: /admin/git-connections, label: "Admin → Git connections"}
+    reading: >
+      The hosts this platform's builds may clone from, with reach and coverage.
+      Refused to every API key: the clone credential lives behind these, and it
+      is the install's rather than anybody's. Secrets are write-only.
+
+  - id: processes
+    label: Running workloads
+    credential: key
+    source: {kind: api, route: "GET /api/v1/system/processes"}
+    screen: {path: /admin/processes, label: "Admin → Processes"}
+    reading: >
+      Every live workload with app, owner, running mode, host and status.
+      Membership is the backend's word, never the existence of its bookkeeping.
+      cpu and memory are ABSENT, not zero, for a backend that takes no reading.
+
+  - id: openapi
+    label: The served attack surface
+    credential: key
+    source: {kind: api, route: "GET /api/v1/admin/openapi.json"}
+    screen: {path: /admin, label: "not a page — exported"}
+    reading: >
+      The router's own account of itself: every path, every method. Generated
+      from the same walk `launchpad routes` uses, so it cannot drift from what
+      is served. A target list, not an API contract — the document says so
+      itself. Summarised here by counts, never reproduced whole.
+
+  # --------------------------------------------------- risk & vulnerabilities
+  - id: dependency_findings
+    label: Dependency advisories across the estate
+    credential: key
+    source: {kind: api, route: "GET /api/v1/admin/dependencies"}
+    screen: {path: /admin/dependencies, label: "Admin → Dependencies"}
+    reading: >
+      What the inventory matched against the advisory feed. It reads names and
+      versions, not the app's code — never oversell it. Recorded is not scanned,
+      and matched is not covered.
+
+  - id: dependency_inventory
+    label: Package inventory (governance read)
+    credential: key
+    source: {kind: api, route: "GET /api/v1/admin/packages"}
+    screen: {path: /admin/packages, label: "Admin → Packages"}
+    reading: >
+      The estate's package list — apps, occurrences, version spread — affected
+      or not. Admin-only, never answers less than it knows, and carries its own
+      coverage. This install's package list never leaves.
+
+  - id: setting_dependency_policy
+    label: Dependency policy and blocking thresholds
+    credential: key
+    source: {kind: api, route: "GET /api/v1/system/settings", fields: [dependency_policy, dependency_scan_on_deploy, dependency_watch_enabled, dependency_block_malware, dependency_block_severity, dependency_block_only_fixable, dependency_scan_interval_hours, dependency_feed_max_age_hours, dependency_waiver_max_days, dependency_lock_on]}
+    screen: {path: /admin/settings, anchor: dependencies, label: "Admin → Settings → Dependencies"}
+    reading: >
+      The flaw-remediation policy in force. Malware is not a severity, and the
+      malware lock is not the block threshold. A stale feed never blocks. There
+      is no permanent waiver — dependency_waiver_max_days is its ceiling.
+
+  # ------------------------------------ system & communications protection
+  - id: storage_resources
+    label: Durable storage resources and mappings
+    credential: key
+    source: {kind: api, route: "GET /api/v1/admin/storage"}
+    screen: {path: /admin/storage, label: "Admin → Storage"}
+    reading: >
+      What this install can provision and what is attached where. A grant is a
+      person's and a mapping is an app's; neither implies the other. The URL is
+      never more generous than the mount.
+
+  - id: telemetry_settings
+    label: Telemetry export
+    credential: session
+    source: {kind: api, route: "GET /api/v1/admin/telemetry-settings"}
+    screen: {path: /admin/telemetry, label: "Admin → Telemetry"}
+    reading: >
+      Where metrics and traces are exported, if anywhere. Exported, never
+      resident, and never load-bearing; absent configuration means absent. The
+      collector credential never reaches a workload and never appears here.
+
+  - id: integration_settings
+    label: Notification and integration channels
+    credential: session
+    source: {kind: api, route: "GET /api/v1/admin/integration-settings"}
+    screen: {path: /admin/integrations, label: "Admin → Integrations"}
+    reading: >
+      Which integration kinds this install offers apps. An app has none of a
+      kind until an administrator attaches it — absent, not off.
+
+  - id: email_settings
+    label: Mail relay configuration
+    credential: session
+    source: {kind: api, route: "GET /api/v1/admin/email-settings"}
+    screen: {path: /admin/email, label: "Admin → Email"}
+    reading: >
+      SMTP configuration; the password is write-only and the response carries
+      password_set instead. Optional and never load-bearing — no send may fail
+      or block the request that triggered it.
+
+  # ------------------------------------------------------- screenshot-only
+  - id: shot_login
+    label: The sign-in page as a visitor sees it
+    credential: session
+    source: {kind: screenshot}
+    screen: {path: /login, label: "The sign-in page", anonymous: true}
+    reading: >
+      Captured signed OUT. Evidence of the system use notification and of which
+      doors this install actually offers.
+
+  - id: shot_locked_app
+    label: What a locked app tells a visitor
+    credential: session
+    source: {kind: screenshot}
+    screen: {path: "/apps/{slug}", label: "A locked app, as a visitor", anonymous: true, conditional: true}
+    reading: >
+      Captured only when the install has a locked app. A refusal is 409 and
+      carries the administrator's words; no layer of the message may be blank.

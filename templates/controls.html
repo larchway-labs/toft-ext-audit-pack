@@ -1,0 +1,69 @@
+{% extends "_layout.html" %}
+{% set active = 'controls' %}
+{% block title %}Control mapping — Audit Pack{% endblock %}
+{% block heading %}Control mapping{% endblock %}
+{% block standfirst %}
+Every requirement of NIST SP 800-171 Rev 3, and what Launchpad does about it.
+Requirement ids and titles are NIST's; the answer beside each is this project's
+assertion and is what an assessor should test.
+{% endblock %}
+
+{% block body %}
+
+<div class="seg" style="margin-bottom:1rem">
+  <a class="tab {% if not filter %}is-on{% endif %}" href="{{ base_path }}/controls">All {{ coverage.requirements }}</a>
+  {% for k in resp_order %}
+  <a class="tab {% if filter==k %}is-on{% endif %}" href="{{ base_path }}/controls?responsibility={{ k }}">
+    {{ k }} <span class="tab-count">{{ coverage.by_responsibility[k] }}</span>
+  </a>
+  {% endfor %}
+</div>
+
+{% if filter %}
+<div class="note">
+  <p><strong>{{ resp_copy[filter][0] }}.</strong> {{ resp_copy[filter][1] }}</p>
+</div>
+{% endif %}
+
+{% for f in families %}
+<section class="card">
+  <div class="card-hd">
+    <h2><span class="req-id mono">{{ f.code }}</span> &nbsp; {{ f.title }}</h2>
+    <span class="badge tone-neu">{{ f.requirements|length }}</span>
+  </div>
+  <div class="card-bd card-flush">
+    <div class="tbl-wrap">
+      <table class="tbl">
+        <thead>
+          <tr>
+            <th style="width:6.5rem">Requirement</th>
+            <th style="width:16rem">Title</th>
+            <th style="width:7rem">Responsibility</th>
+            <th>How</th>
+          </tr>
+        </thead>
+        <tbody>
+        {% for r in f.requirements %}
+          <tr>
+            <td class="mono req-id nowrap">
+              <a href="{{ base_path }}/controls/{{ r.id }}">{{ r.id }}</a>
+            </td>
+            <td>{{ r.title }}</td>
+            <td>
+              <span class="badge resp
+                {%- if r.responsibility=='platform' %} tone-ok
+                {%- elif r.responsibility=='shared' %} tone-info
+                {%- elif r.responsibility=='inherited' %} tone-att
+                {%- else %} tone-neu{% endif %}">{{ r.responsibility }}</span>
+            </td>
+            <td class="small">{{ r.summary }}</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+{% endfor %}
+
+{% endblock %}

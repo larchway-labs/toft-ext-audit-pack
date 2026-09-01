@@ -1,0 +1,156 @@
+{% extends "_layout.html" %}
+{% set active = 'controls' %}
+{% block title %}{{ r.id }} {{ r.title }} — Audit Pack{% endblock %}
+{% block heading %}<span class="mono req-id">{{ r.id }}</span> &nbsp; {{ r.title }}{% endblock %}
+{% block standfirst %}{{ r.family }} {{ r.family_title }} · {{ r.summary }}{% endblock %}
+
+{% block body %}
+
+<p class="small"><a href="{{ base_path }}/controls">&larr; All requirements</a></p>
+
+<section class="card">
+  <div class="card-hd">
+    <h2>Responsibility</h2>
+    <span class="badge
+      {%- if r.responsibility=='platform' %} tone-ok
+      {%- elif r.responsibility=='shared' %} tone-info
+      {%- elif r.responsibility=='inherited' %} tone-att
+      {%- else %} tone-neu{% endif %}">{{ r.responsibility }}</span>
+  </div>
+  <div class="card-bd">
+    <p><strong>{{ resp_copy[r.responsibility][0] }}.</strong>
+       {{ resp_copy[r.responsibility][1] }}</p>
+  </div>
+</section>
+
+<section class="card">
+  <div class="card-hd"><h2>What NIST requires</h2><span class="badge tone-neu">verbatim</span></div>
+  <div class="card-bd">
+    <ul class="stack-s">
+    {% for s in r.statement %}
+      <li style="margin-left:{{ s.depth }}rem">
+        {% if s.label %}<span class="mono tiny muted">{{ s.label }}</span> {% endif %}{{ s.prose }}
+      </li>
+    {% endfor %}
+    </ul>
+    {% if r.guidance %}
+    <div class="note" style="margin-top:1rem">
+      <p class="small"><strong>NIST discussion.</strong> {{ r.guidance }}</p>
+    </div>
+    {% endif %}
+  </div>
+</section>
+
+{% if r.mechanism %}
+<section class="card">
+  <div class="card-hd"><h2>How Launchpad addresses it</h2></div>
+  <div class="card-bd"><p>{{ r.mechanism }}</p></div>
+</section>
+{% endif %}
+
+{% if r.customer %}
+<section class="card">
+  <div class="card-hd">
+    <h2>What you must still do</h2>
+    <span class="badge tone-att">your responsibility</span>
+  </div>
+  <div class="card-bd"><p>{{ r.customer }}</p></div>
+</section>
+{% endif %}
+
+{% if r.odps %}
+<section class="card">
+  <div class="card-hd">
+    <h2>Organization-defined parameters</h2>
+    <span class="badge tone-neu">{{ r.odps|length }}</span>
+  </div>
+  <div class="card-bd card-flush">
+    <div class="tbl-wrap">
+      <table class="tbl">
+        <thead><tr><th style="width:11rem">Parameter</th><th>NIST asks you to define</th><th style="width:14rem">This install's answer</th></tr></thead>
+        <tbody>
+        {% for o in r.odps %}
+          <tr {% if o.state=='unaddressed' %}class="odp-gap"{% endif %}>
+            <td class="mono tiny nowrap">{{ o.id }}</td>
+            <td class="small">{{ o.guideline or o.usage }}</td>
+            <td class="small">
+              {% if o.state == 'bound' %}
+                <span class="badge tone-ok">live</span>
+                <div class="tiny mono" style="margin-top:.35rem">{{ o.bound_to.source.route }}{% if o.field %} &rarr; {{ o.field }}{% endif %}</div>
+                {% if o.note %}<div class="tiny muted">{{ o.note }}</div>{% endif %}
+              {% elif o.state == 'stated' %}
+                <span class="badge tone-info">{{ o.value }}</span>
+                {% if o.note %}<div class="tiny muted">{{ o.note }}</div>{% endif %}
+              {% elif o.state == 'noted' %}
+                <span class="badge tone-neu">yours</span>
+                {% if o.note %}<div class="tiny muted">{{ o.note }}</div>{% endif %}
+              {% else %}
+                <span class="badge tone-neu">not addressed by this pack</span>
+              {% endif %}
+            </td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+{% endif %}
+
+{% if r.evidence %}
+<section class="card">
+  <div class="card-hd">
+    <h2>Evidence</h2>
+    <span class="badge tone-neu">{{ r.evidence|length }} items</span>
+  </div>
+  <div class="card-bd card-flush">
+    <div class="tbl-wrap">
+      <table class="tbl">
+        <thead><tr><th style="width:16rem">Item</th><th style="width:6rem">Read by</th><th>Source</th></tr></thead>
+        <tbody>
+        {% for e in r.evidence %}
+          <tr>
+            <td>{{ e.label }}</td>
+            <td>
+              {% if e.credential == 'session' %}<span class="badge tone-att">lpaudit</span>
+              {% elif e.credential == 'none' %}<span class="badge tone-neu">anonymous</span>
+              {% else %}<span class="badge tone-ok">admin key</span>{% endif %}
+            </td>
+            <td class="small">
+              <span class="mono tiny">{{ e.source.route or 'screenshot' }}</span>
+              {% if e.screen and e.screen.label %}<div class="tiny muted">{{ e.screen.label }}</div>{% endif %}
+            </td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+{% endif %}
+
+{% if r.objectives %}
+<section class="card">
+  <div class="card-hd">
+    <h2>Assessment objectives</h2>
+    <span class="badge tone-neu">{{ r.objectives|length }}</span>
+  </div>
+  <div class="card-bd">
+    <p class="tiny muted">What an assessor determines, verbatim from NIST. This
+    pack maps evidence at the requirement level, not per objective — these are
+    here so you can see what the requirement will actually be tested against.</p>
+    <ul class="stack-s small">
+      {% for o in r.objectives %}<li>{{ o }}</li>{% endfor %}
+    </ul>
+  </div>
+</section>
+{% endif %}
+
+{% if r.refs %}
+<div class="note">
+  <p class="tiny"><strong>Where this is written down in Launchpad:</strong>
+  {% for ref in r.refs %}<span class="mono">{{ ref }}</span>{% if not loop.last %} · {% endif %}{% endfor %}</p>
+</div>
+{% endif %}
+
+{% endblock %}

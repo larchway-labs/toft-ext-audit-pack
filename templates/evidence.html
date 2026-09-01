@@ -1,0 +1,86 @@
+{% extends "_layout.html" %}
+{% set active = 'evidence' %}
+{% block title %}Live evidence — Audit Pack{% endblock %}
+{% block heading %}Live evidence{% endblock %}
+{% block standfirst %}
+What this install is actually configured to do, read now, with the route each
+reading came from. Nothing here is a verdict — the pack reports what it read and
+lets the assessor decide.
+{% endblock %}
+
+{% block body %}
+
+{% if not result.configured %}
+<div class="empty">
+  <h2>No credential</h2>
+  <p>This app has no <span class="mono">LAUNCHPAD_URL</span> and
+  <span class="mono">LAUNCHPAD_TOKEN</span>, so it has read nothing. Set them in
+  the app's Settings to collect the {{ coverage.evidence_by_key }} items an
+  administrator key can reach — or run
+  <a href="{{ base_path }}/">lpaudit</a>, which collects all
+  {{ coverage.evidence_total }}.</p>
+</div>
+{% else %}
+<section class="tiles">
+  <div class="tile"><div class="tile-k">read</div><div class="tile-v">{{ result.by_state.get('ok', 0) }}</div></div>
+  <div class="tile"><div class="tile-k">need lpaudit</div><div class="tile-v">{{ result.by_state.get('needs_cli', 0) }}</div></div>
+  <div class="tile"><div class="tile-k">capability absent</div><div class="tile-v">{{ result.by_state.get('absent', 0) }}</div></div>
+  <div class="tile"><div class="tile-k">could not read</div><div class="tile-v">{{ result.by_state.get('error', 0) }}</div></div>
+</section>
+
+<div class="note">
+  <p>Collected <span class="mono">{{ result.collected_at }}</span> from
+  <span class="mono">{{ result.base_url }}</span>.
+  <strong>Absent is not a failure.</strong> A 404 is how Launchpad answers for a
+  capability this install does not have — no artifact store, no isolated
+  backend, no telemetry — and reporting that as an error would be reporting the
+  install as broken for being smaller than it could be.</p>
+</div>
+{% endif %}
+
+<section class="card">
+  <div class="card-hd">
+    <h2>Every evidence item</h2>
+    <span class="badge tone-neu">{{ rows|length }}</span>
+  </div>
+  <div class="card-bd card-flush">
+    <div class="tbl-wrap">
+      <table class="tbl">
+        <thead>
+          <tr>
+            <th style="width:15rem">Item</th>
+            <th style="width:7rem">State</th>
+            <th>Reading</th>
+          </tr>
+        </thead>
+        <tbody>
+        {% for row in rows %}
+          <tr>
+            <td>
+              <div>{{ row.label }}</div>
+              <div class="tiny mono muted">{{ row.route or 'screenshot' }}</div>
+            </td>
+            <td>
+              {% if row.state == 'ok' %}<span class="badge tone-ok">read</span>
+              {% elif row.state == 'needs_cli' %}<span class="badge tone-att">lpaudit</span>
+              {% elif row.state == 'absent' %}<span class="badge tone-neu">absent</span>
+              {% elif row.state == 'unconfigured' %}<span class="badge tone-neu">no credential</span>
+              {% else %}<span class="badge tone-dan">{{ row.state }}</span>{% endif %}
+            </td>
+            <td class="small">
+              {% if row.value is not none %}
+                <pre class="term tiny" style="max-height:11rem;overflow:auto">{{ row.value | tojson(indent=1) }}</pre>
+              {% elif row.reason %}
+                <div class="muted">{{ row.reason }}</div>
+              {% endif %}
+              <div class="tiny muted" style="margin-top:.4rem">{{ row.reading }}</div>
+            </td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+{% endblock %}

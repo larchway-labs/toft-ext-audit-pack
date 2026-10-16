@@ -43,7 +43,7 @@
 
 {% if r.mechanism %}
 <section class="card">
-  <div class="card-hd"><h2>How Launchpad addresses it</h2></div>
+  <div class="card-hd"><h2>How Toft addresses it</h2></div>
   <div class="card-bd"><p>{{ r.mechanism }}</p></div>
 </section>
 {% endif %}
@@ -112,7 +112,7 @@
           <tr>
             <td>{{ e.label }}</td>
             <td>
-              {% if e.credential == 'session' %}<span class="badge tone-att">lpaudit</span>
+              {% if e.credential == 'session' %}<span class="badge tone-att">toftaudit</span>
               {% elif e.credential == 'none' %}<span class="badge tone-neu">anonymous</span>
               {% else %}<span class="badge tone-ok">admin key</span>{% endif %}
             </td>
@@ -148,7 +148,7 @@
 
 {% if r.refs %}
 <div class="note">
-  <p class="tiny"><strong>Where this is written down in Launchpad:</strong>
+  <p class="tiny"><strong>Where this is written down in Toft:</strong>
   {% for ref in r.refs %}<span class="mono">{{ ref }}</span>{% if not loop.last %} · {% endif %}{% endfor %}</p>
 </div>
 {% endif %}

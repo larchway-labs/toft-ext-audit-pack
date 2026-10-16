@@ -1,6 +1,6 @@
 """Load and join the three registries.
 
-Nothing here talks to a Launchpad install. This module answers "what are the
+Nothing here talks to a Toft install. This module answers "what are the
 controls, what would prove them, and which credential class does each proof
 need" — questions with the same answer on every install, which is why the
 control document renders with no configuration at all.
@@ -23,21 +23,21 @@ RESPONSIBILITIES = ["platform", "shared", "inherited", "customer"]
 
 RESPONSIBILITY_COPY = {
     "platform": (
-        "Launchpad implements it",
+        "Toft implements it",
         "The install's own configuration is the evidence, and this pack reads it.",
     ),
     "shared": (
-        "Launchpad provides the mechanism; you operate it",
+        "Toft provides the mechanism; you operate it",
         "Both halves are stated. The platform half is evidenced here; the "
         "organizational half is yours to record.",
     ),
     "inherited": (
-        "Satisfied below Launchpad",
-        "The host, the cluster, the facility or the identity provider. Launchpad "
+        "Satisfied below Toft",
+        "The host, the cluster, the facility or the identity provider. Toft "
         "neither implements nor weakens it — assess it at that layer.",
     ),
     "customer": (
-        "Launchpad has no part in it",
+        "Toft has no part in it",
         "Said plainly rather than padded. Cite your own programme.",
     ),
 }

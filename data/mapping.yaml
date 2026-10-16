@@ -1,14 +1,14 @@
-# Launchpad's answer to NIST SP 800-171 Rev 3, requirement by requirement.
+# Toft's answer to NIST SP 800-171 Rev 3, requirement by requirement.
 #
 # `responsibility` is the honest half of this document and it has four values:
-#   platform   Launchpad implements it. The install's configuration is the
+#   platform   Toft implements it. The install's configuration is the
 #              evidence, and this pack reads it.
-#   shared     Launchpad provides the mechanism; the organization must
+#   shared     Toft provides the mechanism; the organization must
 #              configure or operate it. Both halves are stated.
-#   inherited  Satisfied below Launchpad — the host, the cluster, the facility,
-#              the identity provider. Launchpad neither implements nor weakens
+#   inherited  Satisfied below Toft — the host, the cluster, the facility,
+#              the identity provider. Toft neither implements nor weakens
 #              it, and the assessor should look at that layer.
-#   customer   Launchpad has no part in it. Said plainly rather than padded.
+#   customer   Toft has no part in it. Said plainly rather than padded.
 #
 # A pack that claimed `platform` everywhere would be worthless to an assessor.
 # The `customer` and `inherited` entries are what make the `platform` ones
@@ -16,17 +16,17 @@
 #
 # `odp` binds an organization-defined parameter to a live reading where the
 # install actually holds that value. This is the sharpest thing here: NIST asks
-# the organization to define a period, and Launchpad's settings row IS the
+# the organization to define a period, and Toft's settings row IS the
 # definition.
 
 meta:
   version: 1
   catalog: NIST SP 800-171 Revision 3
-  platform: Launchpad
+  platform: Toft
   note: >
     Requirement ids, titles and statement text are taken verbatim from the NIST
     OSCAL release. Everything under `mechanism`, `customer` and `odp` is this
-    project's assertion about Launchpad and is what an assessor should test.
+    project's assertion about Toft and is what an assessor should test.
 
 requirements:
 
@@ -49,7 +49,7 @@ requirements:
     customer: >
       Define who may hold each role and the criteria for granting them; run the
       periodic review; connect termination and transfer to account removal.
-      Launchpad records the acts but does not know your joiners-movers-leavers
+      Toft records the acts but does not know your joiners-movers-leavers
       process.
     evidence: [users_and_roles, groups_and_members, setting_dormancy, setting_sessions, audit_by_category, user_access_review]
     odp:
@@ -82,7 +82,7 @@ requirements:
     responsibility: shared
     summary: Reach is a closed list the platform can enumerate per app and estate-wide.
     mechanism: >
-      Launchpad can state, for every app, what it is able to touch — credential
+      Toft can state, for every app, what it is able to touch — credential
       and mount names, integration kinds, env key counts, grants and app keys —
       as a closed list where the exclusion list is the load-bearing half. It is
       what an app CAN touch, never what it did, and it is names, never values
@@ -91,7 +91,7 @@ requirements:
       open arbitrary egress unless the cluster's policy engine stops it.
     customer: >
       Flow control between an app and the outside world is a network decision,
-      not a Launchpad one. In isolated mode a NetworkPolicy governs it and the
+      not a Toft one. In isolated mode a NetworkPolicy governs it and the
       policy engine is a cluster-creation choice; in shared mode there is no
       egress restriction from the platform. Enforce it at the network layer and
       assess it there.
@@ -111,7 +111,7 @@ requirements:
       never manages credentials or authorization.
     customer: >
       Decide which individuals hold system_admin, and keep that set small and
-      reviewed. Launchpad enforces the separation it defines but cannot know
+      reviewed. Toft enforces the separation it defines but cannot know
       that two of your administrators are the same person's two accounts.
     evidence: [users_and_roles, user_access_review, api_key_inventory, audit_by_category]
     refs: ["invariants: App locking", "invariants: The caller's role", "invariants: Machine credentials"]
@@ -135,7 +135,7 @@ requirements:
       A.03.01.05.ODP.01:
         evidence: users_and_roles
         note: >
-          The roles requiring review are the three system roles Launchpad
+          The roles requiring review are the three system roles Toft
           defines; the accounts holding each are read live.
     refs: ["invariants: Authorization", "invariants: Machine credentials"]
 
@@ -150,12 +150,12 @@ requirements:
       sitting in a pipeline's environment.
     customer: >
       Issue administrators a separate non-privileged account for ordinary work.
-      Launchpad does not force this and cannot detect it.
+      Toft does not force this and cannot detect it.
     evidence: [users_and_roles, api_key_inventory, audit_by_category]
     odp:
       A.03.01.06.ODP.01:
         evidence: users_and_roles
-        note: The privileged role in Launchpad is `system_admin`; its holders are listed live.
+        note: The privileged role in Toft is `system_admin`; its holders are listed live.
     refs: ["invariants: Authorization"]
 
   "03.01.07":
@@ -181,7 +181,7 @@ requirements:
     customer: >
       Every other way in belongs to an identity provider, and the lockout policy
       there is the provider's. Assess it at the IdP. The ODP values below are
-      Launchpad's for the local door only.
+      Toft's for the local door only.
     evidence: [auth_providers, auth_providers_public, shot_login, audit_by_category]
     odp:
       A.03.01.08.ODP.01:
@@ -199,22 +199,22 @@ requirements:
       saying nothing. For a locked app no layer of the message may be blank.
     customer: >
       A system use notification banner with your organization's legal wording is
-      not a Launchpad feature. Put it on the identity provider's sign-in page,
+      not a Toft feature. Put it on the identity provider's sign-in page,
       which is the screen every non-local user actually meets.
     evidence: [setting_refusal_copy, shot_login, shot_locked_app]
     refs: ["invariants: App locking", "invariants: Identity"]
 
   "03.01.10":
     responsibility: shared
-    summary: Launchpad ends idle sessions; it does not lock a device.
+    summary: Toft ends idle sessions; it does not lock a device.
     mechanism: >
       The idle timeout ends the session after a configured period of inactivity
       and applies to sessions already outstanding, so shortening it takes effect
       now rather than at the next sign-in.
     customer: >
       A device lock — screen lock, pattern hiding — is an endpoint control on the
-      user's workstation. Launchpad has no part in it and should not be cited
-      for it. The session timeout below is the nearest Launchpad fact and is
+      user's workstation. Toft has no part in it and should not be cited
+      for it. The session timeout below is the nearest Toft fact and is
       offered as supporting, not satisfying, evidence.
     evidence: [setting_sessions]
     odp:
@@ -245,14 +245,14 @@ requirements:
 
   "03.01.12":
     responsibility: inherited
-    summary: Launchpad is reached over the network like any web application; the remote-access boundary is yours.
+    summary: Toft is reached over the network like any web application; the remote-access boundary is yours.
     mechanism: >
-      Launchpad terminates sessions over HTTPS behind whatever ingress the
+      Toft terminates sessions over HTTPS behind whatever ingress the
       install uses, believes X-Forwarded-* only from a trusted proxy, and works
       out its own inbound address rather than being told it.
     customer: >
       Managing, monitoring and cryptographically protecting remote access — VPN,
-      zero-trust proxy, allowed networks — happens in front of Launchpad. Assess
+      zero-trust proxy, allowed networks — happens in front of Toft. Assess
       it there.
     evidence: [install_identity, install_settings, estate_targets]
     refs: ["invariants: Process and network boundaries"]
@@ -261,14 +261,14 @@ requirements:
     responsibility: customer
     summary: Not a platform concern.
     customer: >
-      Wireless access is a network control. Launchpad has no wireless surface and
+      Wireless access is a network control. Toft has no wireless surface and
       should not appear in this requirement's evidence.
 
   "03.01.18":
     responsibility: customer
     summary: Not a platform concern.
     customer: >
-      Mobile device access control is an endpoint and MDM control. Launchpad
+      Mobile device access control is an endpoint and MDM control. Toft
       serves a browser and has no device management surface.
 
   "03.01.20":
@@ -317,14 +317,14 @@ requirements:
     responsibility: customer
     summary: Not a platform concern.
     customer: >
-      Security literacy training is an organizational programme. Launchpad has
+      Security literacy training is an organizational programme. Toft has
       no training surface and no record of who has been trained. Cite your LMS.
 
   "03.02.02":
     responsibility: customer
     summary: Not a platform concern.
     customer: >
-      Role-based training is organizational. The one Launchpad-adjacent input is
+      Role-based training is organizational. The one Toft-adjacent input is
       the list of who holds system_admin, so the right people can be enrolled —
       that list is collected here as an input, not as evidence of training.
     evidence: [users_and_roles]
@@ -384,7 +384,7 @@ requirements:
       send may fail or block the request that triggered it.
     customer: >
       Alerting on an audit pipeline failure — disk full, database unavailable —
-      is infrastructure monitoring below Launchpad. Assess it there.
+      is infrastructure monitoring below Toft. Assess it there.
     evidence: [install_checks, integration_settings, email_settings]
     odp:
       A.03.03.04.ODP.01:
@@ -402,13 +402,13 @@ requirements:
       than by a parameter, so the review surface is not something an operator can
       widen by passing a bigger number.
     customer: >
-      Perform and record the review at your defined frequency. Launchpad
+      Perform and record the review at your defined frequency. Toft
       provides the feed and its filters; it does not schedule your review or
       record that it happened.
     evidence: [audit_recent, audit_by_category]
     odp:
       A.03.03.05.ODP.01:
-        note: Organization-defined review frequency. Launchpad holds no such setting.
+        note: Organization-defined review frequency. Toft holds no such setting.
     refs: ["invariants: Identity"]
 
   "03.03.06":
@@ -429,12 +429,12 @@ requirements:
       caller's.
     customer: >
       Time synchronisation is the host's. Assess NTP at the operating system,
-      not at Launchpad.
+      not at Toft.
     evidence: [audit_recent, install_identity]
     odp:
       A.03.03.07.ODP.01:
         note: >
-          The authoritative time source is the host's, below Launchpad. The
+          The authoritative time source is the host's, below Toft. The
           install's own clock reading is captured with the pack for comparison.
 
   "03.03.08":
@@ -496,12 +496,12 @@ requirements:
       therefore the change record for both the platform and the apps on it.
     customer: >
       Change approval — who authorises a settings change before it is made — is
-      an organizational process. Launchpad records the change, not the approval.
+      an organizational process. Toft records the change, not the approval.
     evidence: [audit_by_category, install_settings]
 
   "03.04.04":
     responsibility: customer
-    summary: Launchpad records changes; it does not analyse their security impact.
+    summary: Toft records changes; it does not analyse their security impact.
     customer: >
       Security impact analysis is an organizational activity. The audit feed and
       the reach read tell you what changed and what it can touch, which are
@@ -586,7 +586,7 @@ requirements:
       it holds — by name, never value.
     customer: >
       Whether CUI is actually placed in a given mount is a property of the app
-      and your data classification, not of Launchpad. The platform tells you
+      and your data classification, not of Toft. The platform tells you
       where an app COULD put something.
     evidence: [estate_reach, storage_resources, apps_and_visibility]
     refs: ["invariants: App storage", "invariants: What an app can reach"]
@@ -596,7 +596,7 @@ requirements:
     summary: Travel and high-risk-area configuration is an endpoint policy.
     customer: >
       Issuing specially configured devices for high-risk travel is an endpoint
-      programme. Launchpad has no device posture surface.
+      programme. Toft has no device posture surface.
 
   # ================================ 03.05 Identification and Authentication
   "03.05.01":
@@ -639,9 +639,9 @@ requirements:
 
   "03.05.03":
     responsibility: inherited
-    summary: Launchpad delegates MFA to the identity provider and holds no second factor.
+    summary: Toft delegates MFA to the identity provider and holds no second factor.
     mechanism: >
-      Launchpad authenticates people through OIDC and OAuth providers and holds
+      Toft authenticates people through OIDC and OAuth providers and holds
       no second factor of its own. The one local door exists to bootstrap and to
       recover, and it is a password.
     customer: >
@@ -657,7 +657,7 @@ requirements:
     summary: PKCE on OIDC, state checked, and the session is a cookie the browser cannot read.
     mechanism: >
       The authorization code flow checks state and provider on the way back and
-      uses PKCE for OIDC. Sessions are HTTP-only cookies, all named launchpad_*,
+      uses PKCE for OIDC. Sessions are HTTP-only cookies, all named toft_*,
       and every other cookie name on the origin is the app's.
     evidence: [auth_providers, install_checks]
     refs: ["invariants: Identity", "invariants: Process and network boundaries"]
@@ -737,7 +737,7 @@ requirements:
   # ========================================== 03.06 Incident Response
   "03.06.01":
     responsibility: shared
-    summary: Launchpad supplies detection inputs and containment tools, not an IR process.
+    summary: Toft supplies detection inputs and containment tools, not an IR process.
     mechanism: >
       Three containment tools exist and are administrator-only. Locking an app
       stops its workload and refuses visitors with the administrator's words;
@@ -748,7 +748,7 @@ requirements:
       event stream are the detection inputs.
     customer: >
       Incident handling — preparation, detection, analysis, containment,
-      recovery — is your process. Launchpad gives it a kill switch and a record;
+      recovery — is your process. Toft gives it a kill switch and a record;
       it does not run it.
     evidence: [audit_recent, audit_by_category, setting_api_keys, setting_anonymous_access, install_checks]
     refs: ["invariants: App locking", "invariants: Anonymous access", "invariants: Machine credentials"]
@@ -763,7 +763,7 @@ requirements:
       failures are counted rather than becoming a fourth status.
     customer: >
       Reporting incidents to your authorities and to DoD where required is
-      organizational and time-bound. Launchpad has no reporting integration for
+      organizational and time-bound. Toft has no reporting integration for
       it.
     evidence: [integration_settings, email_settings, install_checks]
     odp:
@@ -776,7 +776,7 @@ requirements:
     summary: Not a platform concern.
     customer: >
       Testing the incident response capability is an organizational exercise.
-      Launchpad has no part in it.
+      Toft has no part in it.
     odp:
       A.03.06.03.ODP.01:
         note: Organization-defined IR test frequency.
@@ -798,9 +798,9 @@ requirements:
   # ============================================== 03.07 Maintenance
   "03.07.04":
     responsibility: inherited
-    summary: Maintenance tooling sits below Launchpad.
+    summary: Maintenance tooling sits below Toft.
     mechanism: >
-      Launchpad ships a small set of operator subcommands that talk to Postgres
+      Toft ships a small set of operator subcommands that talk to Postgres
       and exit — recovering an install that cannot be signed into, importing an
       advisory corpus for an install with no outbound HTTPS, and completing a key
       rotation. They are the platform's maintenance surface and they are run on
@@ -815,8 +815,8 @@ requirements:
     summary: Nonlocal maintenance is host access, not platform access.
     customer: >
       How administrators reach the box — bastion, SSH, session recording — is
-      below Launchpad and is assessed there. Note that host access is strictly
-      more powerful than any Launchpad role.
+      below Toft and is assessed there. Note that host access is strictly
+      more powerful than any Toft role.
     evidence: [install_identity]
 
   "03.07.06":
@@ -842,7 +842,7 @@ requirements:
 
   "03.08.02":
     responsibility: shared
-    summary: Access to stored app data is grants and mounts; the underlying media are not Launchpad's.
+    summary: Access to stored app data is grants and mounts; the underlying media are not Toft's.
     mechanism: >
       A grant is a person's and a mapping is an app's, and neither implies the
       other. A grant narrows only by folder, resolution is union-of-max per key,
@@ -885,19 +885,19 @@ requirements:
       Restricting the use of removable media is an endpoint and host control.
     odp:
       A.03.08.07.ODP.01:
-        note: Organization-defined removable media types. Not a Launchpad setting.
+        note: Organization-defined removable media types. Not a Toft setting.
 
   "03.08.09":
     responsibility: shared
     summary: The platform encrypts its own secrets; backup is the operator's.
     mechanism: >
-      What Launchpad encrypts, it encrypts under a named key with the key id
+      What Toft encrypts, it encrypts under a named key with the key id
       derived rather than configured. An artifact store, where configured, holds
       published releases and is one of the optional capabilities that is absent
       unless named.
     customer: >
       Backing up the database and the app filesystem, and encrypting those
-      backups, is the operator's. Launchpad performs no backups.
+      backups, is the operator's. Toft performs no backups.
     evidence: [install_checks, storage_resources]
     refs: ["invariants: At-rest encryption"]
 
@@ -913,7 +913,7 @@ requirements:
 
   "03.09.02":
     responsibility: shared
-    summary: Launchpad can disable and re-own; the trigger is your HR process.
+    summary: Toft can disable and re-own; the trigger is your HR process.
     mechanism: >
       An account can be locked with a message, its role changed, and its grants
       revoked, each audited. The dormancy sweep catches accounts nobody
@@ -922,7 +922,7 @@ requirements:
       leaver is a supported act rather than an orphaning.
     customer: >
       Connecting termination and transfer to these acts within your defined
-      period is your process. Launchpad records the act, not the trigger.
+      period is your process. Toft records the act, not the trigger.
     evidence: [users_and_roles, setting_dormancy, user_access_review, audit_by_category]
     odp:
       A.03.09.02.ODP.01:
@@ -935,7 +935,7 @@ requirements:
     responsibility: inherited
     summary: Physical access is the facility's.
     customer: >
-      Launchpad runs on infrastructure you or your cloud provider control.
+      Toft runs on infrastructure you or your cloud provider control.
       Physical access authorization is assessed at that layer.
 
   "03.10.02":
@@ -961,13 +961,13 @@ requirements:
     summary: Transmission line protection is the facility's and the network's.
     customer: >
       Protecting transmission media physically is a facility control; protecting
-      it cryptographically is 03.13.08, where Launchpad does have something to
+      it cryptographically is 03.13.08, where Toft does have something to
       say.
 
   # ============================================ 03.11 Risk Assessment
   "03.11.01":
     responsibility: shared
-    summary: Launchpad supplies estate-wide inputs; the assessment is yours.
+    summary: Toft supplies estate-wide inputs; the assessment is yours.
     mechanism: >
       Three estate reads and a package inventory give a risk assessment its
       inventory inputs: what runs, where it is addressable, what each app holds,
@@ -995,7 +995,7 @@ requirements:
       and a scan is never counted as usage.
     customer: >
       Scanning the host, the images and the running applications themselves is
-      yours. Launchpad tells a scanner where to point.
+      yours. Toft tells a scanner where to point.
     evidence: [dependency_findings, dependency_inventory, setting_dependency_policy, estate_targets, install_checks]
     odp:
       A.03.11.02.ODP.01:
@@ -1044,11 +1044,11 @@ requirements:
 
   "03.12.02":
     responsibility: customer
-    summary: Launchpad holds findings, not a POA&M.
+    summary: Toft holds findings, not a POA&M.
     customer: >
       A plan of action and milestones is a document your organization maintains.
       The dependency findings and the checks page are inputs to it; there is no
-      POA&M object in Launchpad.
+      POA&M object in Toft.
     evidence: [dependency_findings, install_checks]
 
   "03.12.03":
@@ -1101,7 +1101,7 @@ requirements:
       a trusted proxy, and an install works out its own inbound address rather
       than being told it.
     customer: >
-      The perimeter in front of Launchpad — ingress, WAF, allowed networks — is
+      The perimeter in front of Toft — ingress, WAF, allowed networks — is
       yours.
     evidence: [install_settings, estate_targets, install_identity, install_checks]
     refs: ["invariants: Process and network boundaries", "ADR §31"]
@@ -1137,7 +1137,7 @@ requirements:
       at all depends on the cluster's policy engine.
     customer: >
       The policy engine is a cluster-CREATION decision — on AKS it cannot be added
-      to an existing cluster. If it is absent, the policies Launchpad writes are
+      to an existing cluster. If it is absent, the policies Toft writes are
       inert and deny-by-default is not met. Verify it at the cluster and record
       the result; the platform deliberately does not claim to have checked.
     evidence: [processes, install_checks, estate_reach]
@@ -1155,7 +1155,7 @@ requirements:
       key reaches a workload. Session cookies are HTTP-only.
     customer: >
       TLS termination, its cipher suites and its certificate lifecycle are the
-      ingress's. Launchpad does not terminate TLS itself in the supported
+      ingress's. Toft does not terminate TLS itself in the supported
       deployments and must not be cited as the transport control.
     evidence: [install_checks, install_settings, storage_resources]
     refs: ["invariants: At-rest encryption"]
@@ -1203,12 +1203,12 @@ requirements:
     customer: >
       If your assessment requires FIPS-validated cryptography, that property
       belongs to the KMS or Key Vault backend and to the host's crypto libraries.
-      Launchpad does not assert FIPS validation and must not be cited for it.
+      Toft does not assert FIPS validation and must not be cited for it.
     evidence: [install_checks, install_settings]
     odp:
       A.03.13.11.ODP.01:
         note: >
-          The cryptography used is the configured backend's; Launchpad makes no
+          The cryptography used is the configured backend's; Toft makes no
           FIPS claim of its own.
     refs: ["invariants: At-rest encryption"]
 
@@ -1217,10 +1217,10 @@ requirements:
     summary: Not a platform concern.
     customer: >
       Collaborative computing devices — cameras, microphones — are endpoint
-      controls. Launchpad has no such device surface.
+      controls. Toft has no such device surface.
     odp:
       A.03.13.12.ODP.01:
-        note: Not applicable to Launchpad.
+        note: Not applicable to Toft.
 
   "03.13.13":
     responsibility: shared
@@ -1233,7 +1233,7 @@ requirements:
       directory the platform owns rather than from the release.
     customer: >
       Deciding which mobile code your organization permits inside deployed apps
-      is your policy; Launchpad hosts what your developers deploy and applies the
+      is your policy; Toft hosts what your developers deploy and applies the
       source policy to its provenance, not to its content.
     evidence: [install_settings, estate_targets, source_policy]
     refs: ["invariants: Process and network boundaries", "invariants: Static hosting"]
@@ -1263,8 +1263,8 @@ requirements:
       platform: a single versioned image, never tagged latest, and an install
       that reports its own version and build revision.
     customer: >
-      Deciding when to install a new Launchpad release, and patching the host and
-      the cluster, is yours. Launchpad does not update itself.
+      Deciding when to install a new Toft release, and patching the host and
+      the cluster, is yours. Toft does not update itself.
     evidence: [setting_dependency_policy, dependency_findings, dependency_inventory, install_identity, install_checks]
     odp:
       A.03.14.01.ODP.01:
@@ -1284,7 +1284,7 @@ requirements:
       signs a waiver. It is off by default, so an install that wants this
       behaviour has chosen it.
     customer: >
-      Anti-malware on the host and in the images is yours. Launchpad's malware
+      Anti-malware on the host and in the images is yours. Toft's malware
       handling is about declared dependencies, not about scanning file content.
     evidence: [setting_dependency_policy, dependency_findings, audit_by_category]
     odp:
@@ -1339,7 +1339,7 @@ requirements:
       and the bytes are the app's, stored as text and never read.
     customer: >
       Deciding the retention periods your CUI requires, and applying them to data
-      inside your apps, is yours. Launchpad retains its own records, not your
+      inside your apps, is yours. Toft retains its own records, not your
       application data.
     evidence: [setting_retention, install_settings, estate_reach]
     odp: {}
@@ -1350,14 +1350,14 @@ requirements:
     responsibility: customer
     summary: Policies and procedures are yours; this pack is an input.
     customer: >
-      Launchpad holds no policy documents. This pack exists to be cited by them.
+      Toft holds no policy documents. This pack exists to be cited by them.
     odp:
       A.03.15.01.ODP.01:
         note: Organization-defined policy review frequency.
 
   "03.15.02":
     responsibility: shared
-    summary: Launchpad supplies the system description an SSP needs; the SSP is yours.
+    summary: Toft supplies the system description an SSP needs; the SSP is yours.
     mechanism: >
       The component inventory, the addressable surface, the reach of every app,
       the served route list and the install's own version and configuration are
@@ -1377,7 +1377,7 @@ requirements:
     summary: Not a platform concern.
     customer: >
       Rules of behavior are an organizational document users acknowledge.
-      Launchpad has no acknowledgement surface.
+      Toft has no acknowledgement surface.
     odp:
       A.03.15.03.ODP.01:
         note: Organization-defined frequency for review and re-acknowledgement.
@@ -1417,7 +1417,7 @@ requirements:
       where, and the probe says what.
     customer: >
       Deciding that a series has reached end of support, and scheduling the
-      migration, is yours. Launchpad tells you exactly which apps are on it.
+      migration, is yours. Toft tells you exactly which apps are on it.
     evidence: [estate_languages, install_identity, dependency_inventory, install_checks]
     refs: ["invariants: Language versions"]
 

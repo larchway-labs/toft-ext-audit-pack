@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Regenerate data/nist-800-171r3.json from NIST's OSCAL release.
 
-The catalog in data/ is GENERATED, never hand-edited — the same rule Launchpad
+The catalog in data/ is GENERATED, never hand-edited — the same rule Toft
 applies to its own schema snapshot. Run this to refresh it:
 
     python3 tools/extract_catalog.py            # fetches from NIST

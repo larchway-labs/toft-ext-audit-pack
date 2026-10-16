@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{% block title %}Audit Pack{% endblock %}</title>
 <link rel="icon" href="{{ base_path }}/static/favicon.svg">
-<link rel="stylesheet" href="{{ base_path }}/static/launchpad-kit.css">
+<link rel="stylesheet" href="{{ base_path }}/static/toft-kit.css">
 <style>
   /* The three additions this app needs beyond the kit. Nothing here invents a
      colour: every value is a kit variable. */
@@ -18,7 +18,7 @@
 <a class="lp-skip" href="#main">Skip to content</a>
 <header class="masthead">
   <div class="masthead-in">
-    <div class="wordmark">Launchpad</div>
+    <div class="wordmark">Toft</div>
     <h1>{% block heading %}Audit Pack{% endblock %}</h1>
     <p class="standfirst">{% block standfirst %}{% endblock %}</p>
     <span class="chip">NIST SP 800-171 Rev 3 · {{ coverage.requirements }} requirements · {{ coverage.families }} families</span>
@@ -39,8 +39,8 @@
 
 <footer class="foot">
   <div class="foot-in">
-    <p><strong>Audit Pack</strong> — a Launchpad gallery extension. The control
-    mapping is this project's assertion about Launchpad and is what an assessor
+    <p><strong>Audit Pack</strong> — a Toft gallery extension. The control
+    mapping is this project's assertion about Toft and is what an assessor
     should test; requirement ids, titles and statement text are taken verbatim
     from NIST's OSCAL release of SP 800-171 Rev 3.</p>
     <p class="tiny muted">This pack is audit <em>support</em>. It is not a

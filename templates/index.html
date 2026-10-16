@@ -1,7 +1,7 @@
 {% extends "_layout.html" %}
 {% set active = 'home' %}
 {% block standfirst %}
-Two documents for an assessment against NIST SP 800-171 Rev 3: what Launchpad
+Two documents for an assessment against NIST SP 800-171 Rev 3: what Toft
 does about each of the 97 requirements, and what this install is actually
 configured to do — read live, with the route each reading came from.
 {% endblock %}
@@ -9,7 +9,7 @@ configured to do — read live, with the route each reading came from.
 {% block body %}
 
 <section class="tiles">
-  <div class="tile"><div class="tile-k">Launchpad implements</div><div class="tile-v">{{ coverage.by_responsibility.platform }}</div></div>
+  <div class="tile"><div class="tile-k">Toft implements</div><div class="tile-v">{{ coverage.by_responsibility.platform }}</div></div>
   <div class="tile"><div class="tile-k">shared with you</div><div class="tile-v">{{ coverage.by_responsibility.shared }}</div></div>
   <div class="tile"><div class="tile-k">inherited below</div><div class="tile-v">{{ coverage.by_responsibility.inherited }}</div></div>
   <div class="tile"><div class="tile-k">yours alone</div><div class="tile-v">{{ coverage.by_responsibility.customer }}</div></div>
@@ -17,8 +17,8 @@ configured to do — read live, with the route each reading came from.
 
 <div class="note">
   <p><strong>The split above is the document.</strong> A pack that claimed
-  Launchpad satisfied all 97 requirements would be worthless to an assessor —
-  Launchpad is software, and it has nothing to say about personnel screening or
+  Toft satisfied all 97 requirements would be worthless to an assessor —
+  Toft is software, and it has nothing to say about personnel screening or
   physical access. The {{ coverage.by_responsibility.customer }} requirements
   marked <em>yours alone</em> and the {{ coverage.by_responsibility.inherited }}
   marked <em>inherited</em> are what make the
@@ -34,12 +34,12 @@ configured to do — read live, with the route each reading came from.
 
     <p><strong>{{ coverage.evidence_by_session }} of the
     {{ coverage.evidence_total }} evidence items cannot be read by this app, and
-    that is by design.</strong> Launchpad refuses its most sensitive
+    that is by design.</strong> Toft refuses its most sensitive
     administrative reads to <em>every</em> API key, by name, in its own
     <span class="mono">keyroutes.go</span> — the identity providers, the API key
     inventory, the connected git hosts, the source policy and the estate-wide
     reach read. A token in an app's environment cannot have them. Only a browser
-    session can, which is what <span class="mono">lpaudit</span> is: a small
+    session can, which is what <span class="mono">toftaudit</span> is: a small
     command-line program that signs in as an administrator, collects everything,
     takes the screenshots, and writes one self-contained HTML report.</p>
 
@@ -47,7 +47,7 @@ configured to do — read live, with the route each reading came from.
     <div class="btns" style="margin:1rem 0 .5rem">
       {% if detected %}
       <a class="btn btn-primary btn-lg" href="{{ base_path }}/download/{{ detected }}">
-        Download lpaudit
+        Download toftaudit
         {%- for k, os_name, arch in platforms %}{% if k == detected %} for {{ os_name }} ({{ arch }}){% endif %}{% endfor %}
       </a>
       {% endif %}
@@ -91,22 +91,22 @@ configured to do — read live, with the route each reading came from.
     — one self-contained page, no network needed to read it — alongside the raw
     JSON and the screenshots, and a manifest with a SHA-256 of every file.</p>
 
-<pre class="term"><code>tar xzf lpaudit_{{ detected or 'linux_amd64' }}.tar.gz
-./lpaudit --url {{ install_url or 'https://launchpad.example.com' }} --out ./audit-2026-09-01
+<pre class="term"><code>tar xzf toftaudit_{{ detected or 'linux_amd64' }}.tar.gz
+./toftaudit --url {{ install_url or 'https://toft.example.com' }} --out ./audit-2026-09-01
 
 # It prompts for the administrator username and password. To run it
 # unattended, supply them in the environment instead:
-LPAUDIT_USER=admin LPAUDIT_PASSWORD=... ./lpaudit --url ... --out ...
+LPAUDIT_USER=admin LPAUDIT_PASSWORD=... ./toftaudit --url ... --out ...
 
 # Screenshots need a Chrome or Chromium on your machine. Without one it
 # collects everything else and says which items it could not picture:
-./lpaudit --url ... --out ... --no-screenshots</code></pre>
+./toftaudit --url ... --out ... --no-screenshots</code></pre>
 
     <p class="tiny muted">The credential is never a flag — it is prompted for or
-    taken from the environment, which is the same rule Launchpad's own
-    <span class="mono">lp</span> client follows. Nothing is written back to the
-    install: <span class="mono">lpaudit</span> issues reads only, and sends
-    <span class="mono">X-Launchpad-Scan: 1</span> so its traffic is not counted
+    taken from the environment, which is the same rule Toft's own
+    <span class="mono">toft</span> client follows. Nothing is written back to the
+    install: <span class="mono">toftaudit</span> issues reads only, and sends
+    <span class="mono">X-Toft-Scan: 1</span> so its traffic is not counted
     as somebody using your apps.</p>
   </div>
 </section>
@@ -123,16 +123,16 @@ LPAUDIT_USER=admin LPAUDIT_PASSWORD=... ./lpaudit --url ... --out ...
     {{ coverage.evidence_by_key }} of the {{ coverage.evidence_total }} evidence
     items itself. <a href="{{ base_path }}/evidence">See the live evidence</a>.</p>
     {% else %}
-    <p>Set <span class="mono">LAUNCHPAD_URL</span> and
-    <span class="mono">LAUNCHPAD_TOKEN</span> — a personal administrator API key
+    <p>Set <span class="mono">TOFT_URL</span> and
+    <span class="mono">TOFT_TOKEN</span> — a personal administrator API key
     — in this app's Settings, and it will read
     {{ coverage.evidence_by_key }} of the {{ coverage.evidence_total }} evidence
     items directly. Without them the control mapping below still renders in
-    full: it is true of any Launchpad install and needs no configuration.</p>
+    full: it is true of any Toft install and needs no configuration.</p>
     <p class="tiny muted">A long-lived administrator key living in an app's
     environment is a real standing risk, and it buys you
     {{ coverage.evidence_by_key }} of {{ coverage.evidence_total }} items.
-    <span class="mono">lpaudit</span> holds a session that ends when it exits and
+    <span class="mono">toftaudit</span> holds a session that ends when it exits and
     gets all {{ coverage.evidence_total }}. Prefer it.</p>
     {% endif %}
   </div>
@@ -143,13 +143,13 @@ LPAUDIT_USER=admin LPAUDIT_PASSWORD=... ./lpaudit --url ... --out ...
   <div class="card-bd">
     <p>800-171 asks the organization to define {{ coverage.odp_total }} parameters —
     a period here, a frequency there. <strong>{{ coverage.odp_bound }} of them are
-    values a Launchpad install already holds</strong>, and this pack binds them to
+    values a Toft install already holds</strong>, and this pack binds them to
     the live setting rather than asking you to write the number down twice: the
     account-inactivity period is <span class="mono">dormant_lock_days</span>, the
     session-termination period is <span class="mono">session_idle_minutes</span>,
     the malware response is <span class="mono">dependency_block_malware</span>.</p>
     <p class="tiny muted">{{ coverage.odp_noted }} more are noted as
-    organizational with no Launchpad setting behind them, and
+    organizational with no Toft setting behind them, and
     {{ coverage.odp_unaddressed }} are not addressed by this pack at all. That
     last number is shown because a coverage figure you cannot see is a coverage
     figure you cannot trust.</p>

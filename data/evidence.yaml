@@ -6,14 +6,14 @@
 #   session  the item is refused to every API key by name in
 #            internal/api/keyroutes.go, so ONLY a browser session reaches it —
 #            which is why the CLI exists. The extension must report these as
-#            "requires lpaudit", never as absent and never as empty.
+#            "requires toftaudit", never as absent and never as empty.
 #
 # A screen entry names where a human reads the same fact in the UI. The CLI
 # screenshots it; the extension links to it.
 
 meta:
   version: 1
-  platform: Launchpad
+  platform: Toft
 
 items:
 
@@ -309,7 +309,7 @@ items:
     screen: {path: /admin, label: "not a page — exported"}
     reading: >
       The router's own account of itself: every path, every method. Generated
-      from the same walk `launchpad routes` uses, so it cannot drift from what
+      from the same walk `toft routes` uses, so it cannot drift from what
       is served. A target list, not an API contract — the document says so
       itself. Summarised here by counts, never reproduced whole.
 

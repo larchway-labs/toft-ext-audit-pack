@@ -1,4 +1,4 @@
-"""Read live evidence from a Launchpad install with a personal admin key.
+"""Read live evidence from a Toft install with a personal admin key.
 
 This is the extension's half of the collection. It can only reach the evidence
 items marked `credential: key` — the twelve marked `session` are refused to
@@ -23,11 +23,11 @@ TIMEOUT = 20
 
 
 class Install:
-    """A Launchpad install, addressed with a personal administrator API key."""
+    """A Toft install, addressed with a personal administrator API key."""
 
     def __init__(self, base_url: str | None = None, token: str | None = None):
-        self.base = (base_url or os.environ.get("LAUNCHPAD_URL", "")).rstrip("/")
-        self.token = token or os.environ.get("LAUNCHPAD_TOKEN", "")
+        self.base = (base_url or os.environ.get("TOFT_URL", "")).rstrip("/")
+        self.token = token or os.environ.get("TOFT_TOKEN", "")
 
     @property
     def configured(self) -> bool:
@@ -43,7 +43,7 @@ class Install:
             "Accept": "application/json",
             # A read taken for an audit is not somebody using the app, and the
             # platform has a header that says so. It grants nothing.
-            "X-Launchpad-Scan": "1",
+            "X-Toft-Scan": "1",
         })
         try:
             with urllib.request.urlopen(req, timeout=TIMEOUT) as resp:
@@ -102,7 +102,7 @@ def collect(install: Install) -> dict:
     if not install.configured:
         for iid, item in items.items():
             results[iid] = _state(item, "unconfigured",
-                                  "No LAUNCHPAD_URL and LAUNCHPAD_TOKEN set on this app.")
+                                  "No TOFT_URL and TOFT_TOKEN set on this app.")
         return _wrap(started, results, install, configured=False)
 
     settings = None
@@ -113,12 +113,12 @@ def collect(install: Install) -> dict:
             results[iid] = _state(
                 item, "needs_cli",
                 "Refused to every API key by name in the platform's keyroutes.go. "
-                "Only a browser session reaches it — run lpaudit.")
+                "Only a browser session reaches it — run toftaudit.")
             continue
 
         if item.get("source", {}).get("kind") == "screenshot":
             results[iid] = _state(item, "needs_cli",
-                                  "A screenshot. Only lpaudit can take it.")
+                                  "A screenshot. Only toftaudit can take it.")
             continue
 
         if iid in FROM_SETTINGS:

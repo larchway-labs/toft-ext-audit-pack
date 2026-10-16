@@ -13,17 +13,17 @@ lets the assessor decide.
 {% if not result.configured %}
 <div class="empty">
   <h2>No credential</h2>
-  <p>This app has no <span class="mono">LAUNCHPAD_URL</span> and
-  <span class="mono">LAUNCHPAD_TOKEN</span>, so it has read nothing. Set them in
+  <p>This app has no <span class="mono">TOFT_URL</span> and
+  <span class="mono">TOFT_TOKEN</span>, so it has read nothing. Set them in
   the app's Settings to collect the {{ coverage.evidence_by_key }} items an
   administrator key can reach — or run
-  <a href="{{ base_path }}/">lpaudit</a>, which collects all
+  <a href="{{ base_path }}/">toftaudit</a>, which collects all
   {{ coverage.evidence_total }}.</p>
 </div>
 {% else %}
 <section class="tiles">
   <div class="tile"><div class="tile-k">read</div><div class="tile-v">{{ result.by_state.get('ok', 0) }}</div></div>
-  <div class="tile"><div class="tile-k">need lpaudit</div><div class="tile-v">{{ result.by_state.get('needs_cli', 0) }}</div></div>
+  <div class="tile"><div class="tile-k">need toftaudit</div><div class="tile-v">{{ result.by_state.get('needs_cli', 0) }}</div></div>
   <div class="tile"><div class="tile-k">capability absent</div><div class="tile-v">{{ result.by_state.get('absent', 0) }}</div></div>
   <div class="tile"><div class="tile-k">could not read</div><div class="tile-v">{{ result.by_state.get('error', 0) }}</div></div>
 </section>
@@ -31,7 +31,7 @@ lets the assessor decide.
 <div class="note">
   <p>Collected <span class="mono">{{ result.collected_at }}</span> from
   <span class="mono">{{ result.base_url }}</span>.
-  <strong>Absent is not a failure.</strong> A 404 is how Launchpad answers for a
+  <strong>Absent is not a failure.</strong> A 404 is how Toft answers for a
   capability this install does not have — no artifact store, no isolated
   backend, no telemetry — and reporting that as an error would be reporting the
   install as broken for being smaller than it could be.</p>
@@ -62,7 +62,7 @@ lets the assessor decide.
             </td>
             <td>
               {% if row.state == 'ok' %}<span class="badge tone-ok">read</span>
-              {% elif row.state == 'needs_cli' %}<span class="badge tone-att">lpaudit</span>
+              {% elif row.state == 'needs_cli' %}<span class="badge tone-att">toftaudit</span>
               {% elif row.state == 'absent' %}<span class="badge tone-neu">absent</span>
               {% elif row.state == 'unconfigured' %}<span class="badge tone-neu">no credential</span>
               {% else %}<span class="badge tone-dan">{{ row.state }}</span>{% endif %}

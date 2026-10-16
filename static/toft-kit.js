@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════════════════════════
-   Launchpad Example Kit — the small amount of JavaScript the house style needs.
+   Toft Example Kit — the small amount of JavaScript the house style needs.
    ───────────────────────────────────────────────────────────────────────────
    No build step, no framework, no dependencies, no network. A plain script tag
    and everything below is wired by `data-` attributes, so a server-rendered
@@ -318,7 +318,7 @@
   /* ── the JSON helper every example's fetch goes through ─────────────────
      One place that turns a non-2xx into an Error carrying the platform's own
      message, because "an error occurred" is the least useful sentence in
-     software and Launchpad's refusals always name the remedy. */
+     software and Toft's refusals always name the remedy. */
 
   LP.json = function (url, opts) {
     opts = opts || {};

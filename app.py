@@ -1,13 +1,13 @@
-"""Audit Pack — the NIST SP 800-171 Rev 3 control mapping for Launchpad, and
+"""Audit Pack — the NIST SP 800-171 Rev 3 control mapping for Toft, and
 the live evidence a personal administrator key can reach.
 
 Two things live here, and the split is the point:
 
   The control document renders with NO configuration at all. It is true of any
-  Launchpad install, so an administrator who has just deployed this can hand an
+  Toft install, so an administrator who has just deployed this can hand an
   assessor 97 mapped requirements before configuring anything.
 
-  The evidence pack needs LAUNCHPAD_URL and LAUNCHPAD_TOKEN — a personal
+  The evidence pack needs TOFT_URL and TOFT_TOKEN — a personal
   administrator API key — and even then reaches only 24 of the 37 evidence
   items. The other 13 are refused to every API key by the platform itself, or
   are screenshots. Those are reported as `needs_cli`, never as blanks: the rule
@@ -44,7 +44,7 @@ PLATFORMS = [
 def _base() -> str:
     """The prefix every link on this page has to carry.
 
-    An app behind Launchpad's proxy is served under /apps/{slug}. Links and form
+    An app behind Toft's proxy is served under /apps/{slug}. Links and form
     actions carry it; a redirect's Location must not, because the proxy re-adds
     it.
     """
@@ -68,7 +68,7 @@ def _available() -> dict:
     """Which tarballs this release actually carries, with their sizes."""
     out = {}
     for key, _, _ in PLATFORMS:
-        path = os.path.join(DIST, f"lpaudit_{key}.tar.gz")
+        path = os.path.join(DIST, f"toftaudit_{key}.tar.gz")
         if os.path.exists(path):
             out[key] = os.path.getsize(path)
     return out
@@ -95,7 +95,7 @@ def index():
         platforms=PLATFORMS,
         available=avail,
         detected=detected,
-        install_url=os.environ.get("LAUNCHPAD_URL", ""),
+        install_url=os.environ.get("TOFT_URL", ""),
         configured=collect.Install().configured,
     )
 
@@ -137,11 +137,11 @@ def evidence():
 def download(platform: str):
     if platform not in dict((k, 1) for k, _, _ in PLATFORMS):
         abort(404)
-    path = os.path.join(DIST, f"lpaudit_{platform}.tar.gz")
+    path = os.path.join(DIST, f"toftaudit_{platform}.tar.gz")
     if not os.path.exists(path):
         abort(404)
     return send_file(path, as_attachment=True,
-                     download_name=f"lpaudit_{platform}.tar.gz")
+                     download_name=f"toftaudit_{platform}.tar.gz")
 
 
 @app.route("/healthz")

@@ -1,11 +1,11 @@
 /* ═══════════════════════════════════════════════════════════════════════════
-   Launchpad Example Kit — the house style for the gallery's example apps.
+   Toft Example Kit — the house style for the gallery's example apps.
    ───────────────────────────────────────────────────────────────────────────
    One stylesheet. No imports, no CDN, no web fonts: an internal install may
    have no route off the network, and a page whose type silently falls back is
    worse than one that chose its fallback on purpose.
 
-   Every example in the Launchpad gallery carries a byte-identical copy of this
+   Every example in the Toft gallery carries a byte-identical copy of this
    file. That is the point — sixteen apps in six languages that a person can
    recognise as one family at a glance, and read without learning a new layout
    each time.
@@ -27,7 +27,7 @@
      .foot                the footer every example ends with
 
    Colour is the platform's own: indigo primary, near-white paper, and the five
-   tones Launchpad itself uses for state. Nothing here renders a colour that is
+   tones Toft itself uses for state. Nothing here renders a colour that is
    not on this list.
    ═══════════════════════════════════════════════════════════════════════════ */
 
@@ -51,7 +51,7 @@
   --lp-deep:        #191B33;   /* the masthead */
   --lp-deep-2:      #24274A;
 
-  /* tone — five meanings, three slots each. Launchpad's own table. */
+  /* tone — five meanings, three slots each. Toft's own table. */
   --lp-ok-sur:   #ECFDF5;  --lp-ok-brd:   #A7E8C8;  --lp-ok-fg:   #04785B;  --lp-ok-solid:   #10B981;
   --lp-att-sur:  #FFFBEB;  --lp-att-brd:  #F3D89A;  --lp-att-fg:  #92610A;  --lp-att-solid:  #F59E0B;
   --lp-dan-sur:  #FEF2F2;  --lp-dan-brd:  #F5BFBF;  --lp-dan-fg:  #B02020;  --lp-dan-solid:  #EF4444;
@@ -224,7 +224,7 @@ pre code { background: none; padding: 0; }
 .chip a, .masthead a { color: #C9CEF8; }
 
 /* ── the capability rail ────────────────────────────────────────────────────
-   Every example carries one. It names the Launchpad capabilities the app is
+   Every example carries one. It names the Toft capabilities the app is
    using and says, live, whether each is actually there on this install — which
    is the difference between a demo and a thing you can trust. */
 

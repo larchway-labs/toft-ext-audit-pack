@@ -50,10 +50,10 @@ items:
       failure, and a check the platform could not ask is not a bad answer.
 
   - id: install_license
-    label: Licence and tier
+    label: License and tier
     credential: session
     source: {kind: api, route: "GET /api/v1/admin/license"}
-    screen: {path: /admin/license, label: "Admin → Licence"}
+    screen: {path: /admin/license, label: "Admin → License"}
     reading: >
       The tier this build holds and the customer it names. Bookkeeping, never a
       security boundary — recorded here because a control document should not
